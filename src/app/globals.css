@@ -152,6 +152,11 @@
   background: var(--muted);
   font-weight: 600;
 }
+.prose-structura a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .prose-structura code {
   font-family: var(--font-mono);
   font-size: 0.88em;

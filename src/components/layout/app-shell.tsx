@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpen, FlaskConical, Flame, Home, LayoutDashboard, Menu, Moon, PenLine, Sparkles, Sun, X } from "lucide-react";
+import { Bot, BookOpen, FlaskConical, Flame, Home, LayoutDashboard, Menu, Moon, PenLine, Sparkles, Sun, X } from "lucide-react";
+import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { cn } from "@/lib/utils";
 import { levelFromXp, streak, useProgress } from "@/lib/progress/store";
 
@@ -12,6 +13,7 @@ const NAV = [
   { href: "/cours", label: "Cours", icon: BookOpen },
   { href: "/simulateur", label: "Simulateur", icon: FlaskConical },
   { href: "/exercices", label: "Exercices", icon: PenLine },
+  { href: "/tuteur", label: "Tuteur IA", icon: Bot },
 ];
 
 function Logo() {
@@ -140,6 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <main className="min-w-0">{children}</main>
+      <TutorLauncher />
     </div>
   );
 }

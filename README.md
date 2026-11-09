@@ -19,7 +19,7 @@ npm run typecheck
 npm run build      # build de production (pages statiques)
 ```
 
-Déploiement : projet Next.js standard, déployable tel quel sur Vercel (aucune variable d'environnement requise à ce stade).
+Déploiement : projet Next.js standard, déployable tel quel sur Vercel. Le tuteur IA nécessite la variable d'environnement `ANTHROPIC_API_KEY` (voir `.env.example`) ; sans elle, tout le reste du site fonctionne et le tuteur s'affiche « non configuré ».
 
 ### Ce qui fonctionne
 
@@ -30,12 +30,13 @@ Déploiement : projet Next.js standard, déployable tel quel sur Vercel (aucune 
 | **Exercices** | 18 générateurs à données variables (débutant → avancé), filtres par module, difficulté et type de calcul ; indices, détection des erreurs de signe et d'unité, correction en 6 étapes (données, schéma, équations, calculs, résultat, vérification) recoupée par le solveur. |
 | **Évaluation** | Quiz par chapitre, examen final par module (tirage aléatoire, sans aide, validation à 70 %). |
 | **Progression** | XP et niveaux, série quotidienne, objectif hebdomadaire, maîtrise par chapitre et par module, historique, badges, calendrier d'activité. Stockage local (navigateur). |
+| **Tuteur IA** | Bulle de chat sur toutes les pages et page /tuteur. Base documentaire : tous les chapitres, le programme, la banque d'exercices, les conventions et corrigés de TD (S4, S6, fiche barre inclinée). Modes « expliquer », « indices seulement » (sans révéler la solution), « vérifier mon calcul ». Chaque valeur numérique passe par des outils branchés sur le moteur (poutre, portique, treillis, sections, calculatrice exacte). Niveau adapté à la progression de l'étudiant et à la page consultée. |
 | **Interface** | Thème clair / sombre, responsive (mobile, tablette, ordinateur). |
 
 ### Fiabilité des calculs
 
 - Moteur : méthode des déplacements (Euler–Bernoulli, élasticité linéaire), condensation des rotules, efforts internes exacts par équilibre de tronçon, déformée par intégration exacte (Gauss–Legendre sur polynômes par morceaux).
-- **46 tests** : cas de référence analytiques (poutres isostatiques et hyperstatiques, Gerber, portique bi-articulé — formule de Kleinlogel —, treillis par la méthode de Ritter), cohérence calcul « à la main » / solveur, 3 600 exercices générés tous recoupés par le solveur, cohérence des contenus.
+- **60 tests** : cas de référence analytiques (poutres isostatiques et hyperstatiques, Gerber, portique bi-articulé — formule de Kleinlogel —, treillis par la méthode de Ritter), cohérence calcul « à la main » / solveur, 3 600 exercices générés tous recoupés par le solveur, cohérence des contenus, outils et boucle du tuteur (client simulé, historique en ajout seul).
 - Convention du cours : torseur de cohésion appliqué à la partie gauche, **dM/dx = −T**, M > 0 fibre inférieure tendue ; diagrammes reportés selon le y local.
 
 Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour l'organisation du code et la feuille de route.
