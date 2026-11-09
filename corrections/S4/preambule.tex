@@ -1,0 +1,186 @@
+% =====================================================================
+%  Préambule commun aux corrigés « MS – Mécanique des Structures 3 »
+%  Reproduit la charte du corrigé de référence Structure (S6) v2 :
+%  A4, cadre, en-tête « Science / MS – Mécanique des Structures 3 » + logo,
+%  pied « MS – TD / titre » + pagination « n / N ».
+% =====================================================================
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[a4paper,
+  left=48.8bp, textwidth=511.7bp,
+  top=42.4bp, textheight=738bp,
+  headheight=0pt, headsep=0pt, footskip=0pt]{geometry}
+
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{Liberation Serif}[Ligatures=TeXOff]
+\newfontfamily\carlito{Carlito}
+\newfontfamily\caladea{Caladea}
+\setmathfont{Latin Modern Math}
+\setmathfont{Caladea Italic}[range={it/{latin,Latin}->up}]
+\setmathfont{Caladea}[range={up/{num}}]
+
+\usepackage[french]{babel}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{eso-pic}
+\usepackage{lastpage}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,patterns.meta,shadings}
+
+\graphicspath{{img/}}
+\linespread{0.958}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.6pt}
+\pagestyle{empty}
+\raggedbottom
+\frenchsetup{SmallCapsFigTabCaptions=false}
+
+% ------------------------------------------------------------------ couleurs
+\definecolor{titreBleu}{RGB}{23,54,93}
+\definecolor{filetBleu}{RGB}{79,129,189}
+\definecolor{secBleu}{RGB}{54,95,145}
+\definecolor{bandeBleu}{RGB}{219,229,241}
+\definecolor{bleuConnu}{RGB}{31,73,125}
+\definecolor{rougeInc}{RGB}{192,0,0}
+\definecolor{aplat}{RGB}{185,205,229}
+\definecolor{noirBarre}{RGB}{17,17,17}
+\definecolor{grisRes}{RGB}{128,128,128}
+\definecolor{grisCote}{RGB}{168,168,168}
+
+% ------------------------------------------------------------------ maths
+% Espacement aéré des équations centrées, comme sur le corrigé de référence
+\everydisplay\expandafter{\the\everydisplay\thickmuskip=12mu plus 4mu\medmuskip=7mu plus 2mu}
+\newcommand{\dMdx}{\frac{\mathrm{d}M}{\mathrm{d}x}}
+\newcommand{\ok}{\;\checkmark}
+\newcommand{\Sq}{(S\textsubscript{4})}
+
+% ------------------------------------------------------------------ en-tête, pied, cadre
+\newcommand{\TitreCourt}{Torseur de cohésion des portiques plans isostatiques}
+\AddToShipoutPictureBG{%
+  \begin{tikzpicture}[remember picture,overlay,x=1bp,y=1bp]
+    \coordinate (O) at (current page.south west);
+    % en-tête
+    \node[anchor=base west,inner sep=0pt,font=\fontsize{6}{7}\selectfont] at ($(O)+(43,815.55)$) {Science};
+    \node[anchor=base west,inner sep=0pt,font=\fontsize{6}{7}\selectfont] at ($(O)+(43,807.85)$) {MS – Mécanique des Structures 3};
+    \node[anchor=north west,inner sep=0pt] at ($(O)+(512.65,827.7)$) {\includegraphics[width=52.9bp,height=28bp]{logo-gc.png}};
+    % cadre (tracé après le logo pour rester visible)
+    \draw[line width=0.5bp] ($(O)+(38,54.89)$) rectangle ($(O)+(571,802.89)$);
+    % pied de page
+    \node[anchor=base west,inner sep=0pt,font=\fontsize{6}{7}\selectfont] at ($(O)+(43,31.15)$) {MS – TD};
+    \node[anchor=base west,inner sep=0pt,font=\fontsize{6}{7}\selectfont\bfseries] at ($(O)+(43,19.45)$) {\TitreCourt};
+    \node[anchor=south west,inner sep=0pt] at ($(O)+(539.8,18.6)$) {\includegraphics[width=13.9bp]{icone-page.png}};
+    \node[anchor=base east,inner sep=0pt,font=\fontsize{6}{7}\selectfont] at ($(O)+(567,20.95)$) {\thepage\,/\,\pageref*{LastPage}};
+  \end{tikzpicture}}
+
+% ------------------------------------------------------------------ titres
+% Saut de page seulement si la place restante est insuffisante (n'introduit
+% pas de point de coupure « préférentiel », contrairement à needspace)
+\makeatletter
+\newcommand{\BesoinPlace}[1]{\par\begingroup\setlength{\dimen@}{#1}%
+  \dimen@ii\pagegoal\advance\dimen@ii-\pagetotal
+  \ifdim\dimen@>\dimen@ii\ifdim\dimen@ii>\z@\vfil\fi\break\fi\endgroup}
+\makeatother
+\newcommand{\TitrePrincipal}[2]{%
+  \vspace*{-7.1bp}%
+  {\centering\caladea\fontsize{21.6}{24}\selectfont\color{titreBleu}#1\par}%
+  \vspace{-4.9bp}%
+  {\centering\color{filetBleu}\rule{471.7bp}{0.6bp}\par}%
+  \vspace{9.4bp}%
+  {\centering\fontsize{14}{16}\selectfont\bfseries #2\par}%
+  \vspace{2.0bp}}
+
+% Bandeau de section : barre 5,4 bp + aplat jusqu'à 508,4 bp, hauteur 20,6 bp
+\newcommand{\Section}[2]{%
+  \par\BesoinPlace{9\baselineskip}\vspace{\EspAvantSection}%
+  \noindent\begin{tikzpicture}[x=1bp,y=1bp,baseline=(b)]
+    \coordinate (b) at (0,0);
+    \fill[bandeBleu] (0,0) rectangle (508.4,20.6);
+    \fill[secBleu] (0,0) rectangle (5.4,20.6);
+    \node[anchor=base west,inner sep=0pt,text=secBleu,
+          font=\carlito\fontsize{20}{22}\selectfont] at (12.1,2.7) {#1. #2};
+  \end{tikzpicture}\par\vskip\EspApresSection\relax}
+
+\newcommand{\SousSection}[2]{%
+  \par\ifdim\lastskip=\EspApresSection\vskip-\CorrSousSection\relax\fi
+  \BesoinPlace{7\baselineskip}\vspace{\EspAvantSousSection}%
+  \noindent\hspace*{65.2bp}{\carlito\fontsize{15}{17}\selectfont\color{secBleu}#1. %
+  \tikz[baseline=(t.base)]{\node[inner sep=0pt](t){#2};
+    \draw[secBleu,line width=0.6bp] ($(t.base west)+(0,-2.3bp)$) -- ($(t.base east)+(0,-2.3bp)$);}}%
+  \par\vspace{\EspApresSousSection}}
+\newcommand{\EspAvantSection}{44.5bp}
+\newlength{\EspApresSection}\setlength{\EspApresSection}{3.9001bp}% marqueur : sert à détecter une sous-section qui suit immédiatement
+\newlength{\CorrSousSection}\setlength{\CorrSousSection}{16.1bp}
+\newcommand{\EspAvantSousSection}{19bp}
+\newcommand{\EspApresSousSection}{6.3bp}
+
+% ------------------------------------------------------------------ boîtes de résultats
+\newcommand{\Resultat}[2][]{%
+  \begin{center}
+    \setlength{\fboxrule}{1pt}\setlength{\fboxsep}{5pt}%
+    \fcolorbox{bleuConnu}{white}{$\displaystyle\thickmuskip=12mu\medmuskip=7mu #2$}%
+    \if\relax\detokenize{#1}\relax\else\\[1pt]#1\fi
+  \end{center}}
+
+% ------------------------------------------------------------------ tableaux
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}m{#1}}
+\newcommand{\entete}{\rowcolor{bandeBleu}}
+\newcommand{\haut}{\rule[-9pt]{0pt}{24pt}}
+
+% ------------------------------------------------------------------ styles TikZ
+\tikzset{
+  barre/.style={line width=2.2pt,color=noirBarre},
+  cote/.style={draw=grisCote,line width=0.4pt},
+  fcote/.style={cote,{To[length=2.6pt,width=3.2pt]}-{To[length=2.6pt,width=3.2pt]}},
+  axe/.style={draw=black!45,line width=0.4pt,dash pattern=on 4pt off 1.5pt on 0.6pt off 1.5pt,-{To[length=4pt,width=5pt]}},
+  inconnue/.style={rougeInc,line width=1.6pt,-{Stealth[length=7pt,width=6.4pt]}},
+  connue/.style={bleuConnu,line width=1.6pt,-{Stealth[length=7pt,width=6.4pt]}},
+  charge/.style={black,line width=1.4pt,-{Stealth[length=6.5pt,width=5.8pt]}},
+  torseur/.style={black,line width=1.4pt,-{Stealth[length=6.5pt,width=5.8pt]}},
+  repere/.style={black,line width=0.45pt},
+  coupure/.style={rougeInc,line width=0.6pt},
+  diag/.style={fill=aplat,fill opacity=0.92,draw=black,line width=0.35pt},
+  pt/.style={font=\fontsize{6.5}{7}\selectfont,inner sep=1.5pt},
+  gros/.style={font=\fontsize{12}{14}\selectfont,inner sep=2pt},
+  moyen/.style={font=\fontsize{9}{10}\selectfont,inner sep=1.5pt},
+  petit/.style={font=\fontsize{7.5}{8}\selectfont,inner sep=1.5pt},
+  diaglbl/.style={font=\fontsize{8.5}{9.5}\selectfont,inner sep=1.5pt},
+}
+% Symbole de repère local en L : coin = origine, bras long = x (angle #2), bras court = y
+\newcommand{\repereL}[3][0.75]{%
+  \draw[repere] ($#2+(#3+90:0.27)$) -- #2 -- ($#2+(#3:#1)$);}
+% Articulation : petit cercle (avec sol hachuré si #2 = sol)
+\newcommand{\articulation}[2][]{%
+  \if\relax\detokenize{#1}\relax\else
+    \fill[pattern={Lines[angle=45,distance=2.6pt,line width=0.35pt]}] ($#2+(-0.68,-0.39)$) rectangle ($#2+(0.68,-0.09)$);
+    \draw[line width=0.5pt] ($#2+(-0.68,-0.09)$) -- ($#2+(0.68,-0.09)$);
+  \fi
+  \draw[fill=white,line width=0.6pt] #2 circle (0.085);}
+% Appui simple : triangle, rouleaux, sol hachuré
+\newcommand{\appuiSimple}[1]{%
+  \shade[top color=black!75,bottom color=black!8,draw=black,line width=0.4pt]
+     #1 -- ++(-0.28,-0.34) -- ++(0.56,0) -- cycle;
+  \draw[fill=white,line width=0.45pt] ($#1+(-0.14,-0.405)$) circle (0.065);
+  \draw[fill=white,line width=0.45pt] ($#1+(0.14,-0.405)$) circle (0.065);
+  \draw[line width=0.5pt] ($#1+(-0.36,-0.47)$) -- ($#1+(0.36,-0.47)$);
+  \fill[pattern={Lines[angle=45,distance=2.6pt,line width=0.35pt]}] ($#1+(-0.36,-0.7)$) rectangle ($#1+(0.36,-0.47)$);}
+% Coupure Σ sur une barre horizontale (point #1, étiquette #2), tournée de #3 degrés
+\newcommand{\coupure}[3][0]{%
+  \begin{scope}[shift={#2},rotate=#1]
+    \draw[coupure] (-0.06,0.5) .. controls (-0.14,0.18) and (0.26,0.02) .. (0.27,-0.42);
+    \node[rougeInc,moyen,font=\fontsize{10}{11}\selectfont] at (0.08,-0.62) {#3};
+  \end{scope}}
+% Face de coupure hachurée (centre #1, rotation #2)
+\newcommand{\faceCoupure}[2][0]{%
+  \begin{scope}[shift={#2},rotate=#1]
+    \fill[white] (-0.06,-0.27) rectangle (0.08,0.27);
+    \fill[pattern={Lines[angle=45,distance=1.7pt,line width=0.3pt]}] (-0.06,-0.27) rectangle (0.08,0.27);
+    \draw[line width=0.35pt] (-0.06,-0.27) rectangle (0.08,0.27);
+  \end{scope}}
+% Signe cerclé ⊕ / ⊖ dans une zone de diagramme
+\newcommand{\signe}[2]{%
+  \node[circle,draw=black,line width=0.45pt,fill=white,inner sep=0pt,minimum size=8.4pt,
+        font=\fontsize{8.5}{8.5}\selectfont\bfseries] at #1 {$#2$};}
