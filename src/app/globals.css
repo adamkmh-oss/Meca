@@ -88,8 +88,8 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-ink: var(--ink);
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 }
 
 @layer base {

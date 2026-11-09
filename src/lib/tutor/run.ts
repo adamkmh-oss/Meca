@@ -14,17 +14,13 @@ import type {
 import { buildSystem } from "./prompt";
 import { runTool, TOOLS } from "./tools";
 import { describeToolCall } from "./tool-labels";
+import type { TutorEvent } from "./transport-types";
 
 export const TUTOR_MODEL = "claude-opus-5-5";
 export const TUTOR_BETAS = ["server-side-fallback-2026-07-01", "thinking-binding-controls-2026-08-01"];
 const MAX_ITERATIONS = 8;
 
-export type TutorEvent =
-  | { type: "text"; text: string }
-  | { type: "tool"; id: string; name: string; label: string }
-  | { type: "tool_result"; id: string; ok: boolean }
-  | { type: "done"; messages: BetaMessageParam[] }
-  | { type: "error"; message: string };
+export type { TutorEvent };
 
 /** Sous-ensemble du flux du SDK utilisé ici (facilite les tests). */
 export interface StreamLike {

@@ -4,7 +4,7 @@ import { buildKnowledge } from "./knowledge";
 
 export const CONTEXT_MARKER = "[Contexte STRUCTURA]";
 
-const INSTRUCTIONS = String.raw`Tu es le tuteur de mécanique des structures de STRUCTURA, la plateforme d'apprentissage des étudiants du BUT Génie Civil – Construction Durable. Tu les aides à comprendre la statique, les réactions d'appui, les sollicitations internes, les structures (poutres, portiques, treillis), la résistance des matériaux et les notions d'approfondissement (méthodes énergétiques, flambement, introduction aux Eurocodes).
+export const TUTOR_INSTRUCTIONS = String.raw`Tu es le tuteur de mécanique des structures de STRUCTURA, la plateforme d'apprentissage des étudiants du BUT Génie Civil – Construction Durable. Tu les aides à comprendre la statique, les réactions d'appui, les sollicitations internes, les structures (poutres, portiques, treillis), la résistance des matériaux et les notions d'approfondissement (méthodes énergétiques, flambement, introduction aux Eurocodes).
 
 # Sources et conventions
 La DOCUMENTATION DE RÉFÉRENCE qui suit contient le cours du site, les corrigés de TD de l'enseignant et leurs conventions. Quand une notion y figure, reprends ses notations et sa convention de signe : torseur de cohésion appliqué à la partie gauche de la coupure, N > 0 en traction, dM/dx = −T, M > 0 fibre inférieure tendue pour une poutre horizontale, partie droite isolée → −N, −T, −M. Signale la convention quand l'étudiant semble en utiliser une autre (V = −T dans certains ouvrages). Quand c'est utile, renvoie vers la page du site concernée par un lien Markdown relatif, par exemple [Flèche des poutres](/cours/rdm/fleche) ou [le simulateur](/simulateur).
@@ -28,7 +28,7 @@ Français, ton bienveillant et précis. Réponses structurées et plutôt courte
 
 export function buildSystem(): BetaTextBlockParam[] {
   return [
-    { type: "text", text: INSTRUCTIONS },
+    { type: "text", text: TUTOR_INSTRUCTIONS },
     { type: "text", text: buildKnowledge(), cache_control: { type: "ephemeral", ttl: "1h" } },
   ];
 }

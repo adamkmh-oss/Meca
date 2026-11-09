@@ -8,6 +8,8 @@ import { Button, Callout, Segmented } from "@/components/ui";
 import { describeToolCall } from "@/lib/tutor/tool-labels";
 import { AVAILABLE_CHAPTERS } from "@/content/modules";
 import { chapterMastery, levelFromXp, useProgress } from "@/lib/progress/store";
+import { checkTutor, sendTutor } from "@/lib/tutor/transport";
+import { TutorError, type TutorAvailability, type TutorEvent } from "@/lib/tutor/transport-types";
 import { cn } from "@/lib/utils";
 
 type Mode = "expliquer" | "indices" | "verifier";
@@ -125,7 +127,7 @@ export function TutorChat({ variant = "page" }: { variant?: "page" | "panel" }) 
   const progress = useProgress();
   const [history, setHistory] = useState<BetaMessageParam[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [availability, setAvailability] = useState<TutorAvailability | null>(null);
   const [mode, setMode] = useState<Mode>("expliquer");
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<{ user: string; parts: Part[] } | null>(null);
@@ -136,10 +138,11 @@ export function TutorChat({ variant = "page" }: { variant?: "page" | "panel" }) 
   useEffect(() => {
     setHistory(loadHistory());
     setLoaded(true);
-    fetch("/api/tuteur")
-      .then((r) => r.json())
-      .then((j) => setConfigured(Boolean(j.configured)))
-      .catch(() => setConfigured(false));
+    let alive = true;
+    checkTutor().then((a) => alive && setAvailability(a));
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -173,61 +176,39 @@ export function TutorChat({ variant = "page" }: { variant?: "page" | "panel" }) 
       setPending({ ...current });
       const controller = new AbortController();
       abortRef.current = controller;
+      let finished = false;
+      const onEvent = (ev: TutorEvent) => {
+        if (ev.type === "text") {
+          const last = current.parts[current.parts.length - 1];
+          if (last?.kind === "text") last.text += ev.text;
+          else current.parts.push({ kind: "text", text: ev.text });
+        } else if (ev.type === "tool") {
+          current.parts.push({ kind: "tool", id: ev.id, label: ev.label });
+        } else if (ev.type === "tool_result") {
+          const p = current.parts.find((x) => x.kind === "tool" && x.id === ev.id);
+          if (p && p.kind === "tool") p.ok = ev.ok;
+        } else if (ev.type === "error") {
+          setError(ev.message);
+        } else if (ev.type === "done") {
+          setHistory((h) => [...h, ...ev.messages]);
+          finished = true;
+        }
+        setPending({ user: current.user, parts: current.parts.map((p) => ({ ...p })) });
+      };
       try {
-        const res = await fetch("/api/tuteur", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({
-            history,
-            message,
-            mode,
-            context: { page: { path: pathname, title: document.title.slice(0, 190) }, profil: profile },
-          }),
-        });
-        if (!res.ok || !res.body) {
-          const j = await res.json().catch(() => null);
-          setError(j?.message ?? "Le tuteur est indisponible pour le moment.");
-          setPending(null);
-          setInput(message);
-          return;
-        }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let finished = false;
-        while (!finished) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          let nl: number;
-          while ((nl = buffer.indexOf("\n")) >= 0) {
-            const line = buffer.slice(0, nl).trim();
-            buffer = buffer.slice(nl + 1);
-            if (!line) continue;
-            const ev = JSON.parse(line);
-            if (ev.type === "text") {
-              const last = current.parts[current.parts.length - 1];
-              if (last?.kind === "text") last.text += ev.text;
-              else current.parts.push({ kind: "text", text: ev.text });
-            } else if (ev.type === "tool") {
-              current.parts.push({ kind: "tool", id: ev.id, label: ev.label });
-            } else if (ev.type === "tool_result") {
-              const p = current.parts.find((x) => x.kind === "tool" && x.id === ev.id);
-              if (p && p.kind === "tool") p.ok = ev.ok;
-            } else if (ev.type === "error") {
-              setError(ev.message);
-            } else if (ev.type === "done") {
-              setHistory((h) => [...h, ...(ev.messages as BetaMessageParam[])]);
-              finished = true;
-            }
-            setPending({ user: current.user, parts: current.parts.map((p) => ({ ...p })) });
-          }
-        }
+        await sendTutor(
+          { history, message, mode, context: { page: { path: pathname, title: document.title.slice(0, 190) }, profil: profile } },
+          onEvent,
+          controller.signal,
+        );
         if (!finished) setError((e) => e ?? "La réponse a été interrompue.");
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setError("Connexion au tuteur impossible.");
-        else setError("Réponse interrompue.");
+        if (e instanceof TutorError) {
+          setError(e.message);
+          if (e.permanent) setAvailability({ ok: false, title: "Tuteur indisponible", message: e.message });
+          if (!finished) setInput(message);
+        } else if ((e as Error).name === "AbortError") setError("Réponse interrompue.");
+        else setError("Connexion au tuteur impossible.");
       } finally {
         setPending(null);
         abortRef.current = null;
@@ -237,7 +218,8 @@ export function TutorChat({ variant = "page" }: { variant?: "page" | "panel" }) 
   );
 
   const tooLong = history.length > MAX_HISTORY;
-  const disabled = configured === false || tooLong;
+  const unavailable = availability?.ok === false;
+  const disabled = unavailable || tooLong;
 
   return (
     <div className={cn("flex min-h-0 flex-col", variant === "page" ? "h-[calc(100dvh-13rem)] min-h-[480px]" : "h-full")}>
@@ -260,18 +242,15 @@ export function TutorChat({ variant = "page" }: { variant?: "page" | "panel" }) 
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1 py-4">
-        {configured === false && (
-          <Callout tone="warning" title="Tuteur non configuré">
+        {unavailable && (
+          <Callout tone="warning" title={availability?.title ?? "Tuteur indisponible"}>
             <span className="inline-flex items-start gap-2">
               <KeyRound className="mt-0.5 size-4 shrink-0" />
-              <span>
-                Le tuteur utilise l&apos;API Claude. Ajoutez la variable d&apos;environnement <code>ANTHROPIC_API_KEY</code> sur le serveur (par exemple dans les
-                réglages du projet Vercel), puis redéployez.
-              </span>
+              <span>{availability?.message}</span>
             </span>
           </Callout>
         )}
-        {turns.length === 0 && !pending && configured !== false && (
+        {turns.length === 0 && !pending && !unavailable && (
           <div className="space-y-4 py-2">
             <div className="flex items-start gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">

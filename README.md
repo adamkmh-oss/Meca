@@ -17,7 +17,10 @@ npm run dev        # http://localhost:3000
 npm test           # tests unitaires (moteur, générateurs, contenus)
 npm run typecheck
 npm run build      # build de production (pages statiques)
+npm run build:artifact  # version page unique à publier sur claude.ai (artifact/dist/structura.html)
 ```
+
+Accès en ligne : le site est publié en lien privé sur claude.ai (version page unique, voir [`artifact/README.md`](artifact/README.md)). Le tuteur y répond avec le compte Claude de la personne connectée : aucune clé d'API à fournir.
 
 Déploiement : projet Next.js standard, déployable tel quel sur Vercel. Le tuteur IA nécessite la variable d'environnement `ANTHROPIC_API_KEY` (voir `.env.example`) ; sans elle, tout le reste du site fonctionne et le tuteur s'affiche « non configuré ».
 
@@ -36,7 +39,7 @@ Déploiement : projet Next.js standard, déployable tel quel sur Vercel. Le tute
 ### Fiabilité des calculs
 
 - Moteur : méthode des déplacements (Euler–Bernoulli, élasticité linéaire), condensation des rotules, efforts internes exacts par équilibre de tronçon, déformée par intégration exacte (Gauss–Legendre sur polynômes par morceaux).
-- **60 tests** : cas de référence analytiques (poutres isostatiques et hyperstatiques, Gerber, portique bi-articulé — formule de Kleinlogel —, treillis par la méthode de Ritter), cohérence calcul « à la main » / solveur, 3 600 exercices générés tous recoupés par le solveur, cohérence des contenus, outils et boucle du tuteur (client simulé, historique en ajout seul).
+- **69 tests** : cas de référence analytiques (poutres isostatiques et hyperstatiques, Gerber, portique bi-articulé — formule de Kleinlogel —, treillis par la méthode de Ritter), cohérence calcul « à la main » / solveur, 3 600 exercices générés tous recoupés par le solveur, cohérence des contenus, outils et boucle du tuteur (client simulé, historique en ajout seul), version publiée (adresses, transport du tuteur par Claude intégré).
 - Convention du cours : torseur de cohésion appliqué à la partie gauche, **dM/dx = −T**, M > 0 fibre inférieure tendue ; diagrammes reportés selon le y local.
 
 Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour l'organisation du code et la feuille de route.

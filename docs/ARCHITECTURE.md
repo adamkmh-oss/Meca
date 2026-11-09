@@ -27,6 +27,7 @@ src/
       prompt.ts         consignes du tuteur + contexte de tour (mode, page, profil)
       tools.ts          outils branchés sur le moteur (poutre, portique, treillis, section, calculatrice sans eval)
       run.ts            boucle streaming + outils, historique en ajout seul
+      transport.ts      liaison interface ↔ tuteur (route /api/tuteur) ; remplacé dans la version publiée
   content/            Contenus pédagogiques (indépendants de l'interface)
     modules.ts          programme : 6 modules, chapitres, objectifs, niveaux
     chapters/*.ts       chapitres rédigés : blocs (texte, définition, formule, schéma interactif, exemple), quiz
@@ -39,6 +40,7 @@ src/
     layout/, ui/, math/
   app/                routes : /, /cours, /cours/[module], /cours/[module]/[chapitre], /cours/[module]/examen,
                       /simulateur, /exercices, /exercices/[id], /tableau-de-bord, /tuteur, /api/tuteur
+artifact/             Version page unique publiée sur claude.ai (mêmes pages et composants, build Vite)
 ```
 
 ## Conventions mécaniques
@@ -70,3 +72,10 @@ Pistes pour le simulateur : édition libre des nœuds et barres pour les portiqu
 - Historique en ajout seul : le serveur renvoie les messages produits (réflexion, appels et résultats d'outils compris), le navigateur les conserve tels quels et les renvoie au tour suivant. Le contexte de chaque tour (mode, page, profil) est un message `role: "system"` ajouté après la question.
 - Fiabilité : outils obligatoires pour toute valeur numérique ; entrées d'outils validées ; `fallbacks: "default"` en cas de refus ; `prefix_mismatch_behavior: "drop_block"` si l'historique a été altéré.
 - Production : la progression étant locale, la route est publique ; la limite de débit est indicative (mémoire d'instance). Avec les comptes (phase 6), réserver l'accès aux utilisateurs connectés.
+
+## Version publiée sur claude.ai
+
+- `npm run build:artifact` produit `artifact/dist/structura.html` : une page autonome (JS, CSS et polices KaTeX inclus, polices Inter et JetBrains Mono chargées depuis Google Fonts).
+- Les pages de `src/app` sont réutilisées sans copie : `artifact/router.tsx` les appelle comme des fonctions ; `next/link` et `next/navigation` sont remplacés par des équivalents à fragment d'URL (`#cours--rdm--fleche`), seule forme d'adresse transmise par le lecteur d'artefacts.
+- Le tuteur passe par la capacité `sample` (Claude intégré à la page, compte de la personne qui consulte) : mêmes consignes, même base documentaire, mêmes outils exécutés dans la page. Pas de prompt système dans ce mode : consignes et documentation forment le premier tour, le contexte (mode, page, profil) ouvre la question.
+- La progression reste dans le navigateur (localStorage) de chaque étudiant.

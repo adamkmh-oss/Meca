@@ -1,0 +1,12 @@
+/* Ajustements propres au lecteur d'artefacts (zones sûres des téléphones). */
+header.sticky {
+  top: env(safe-area-inset-top, 0px);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 35;
+  background: var(--card);
+}
