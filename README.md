@@ -1,17 +1,41 @@
 # Meca
 
-## Corrigés de Mécanique des Structures
+Deux projets dans ce dépôt :
 
-- `corrections/S4/` — Structure (S4), portique à force oblique : corrigé PDF
-  au format du corrigé de référence S6 v2, sources XeLaTeX et préambule commun.
+- **`corrections/`** — corrigés PDF de Mécanique des Structures 3 (torseur de cohésion des portiques plans isostatiques), au format des corrigés de référence. Voir `corrections/S4/README.md`.
+- **STRUCTURA** (racine) — plateforme web d'apprentissage de la mécanique des structures pour le BUT Génie Civil – Construction Durable.
 
-## STRUCTURA — plateforme d'apprentissage (travail en cours)
+## STRUCTURA
 
-Squelette Next.js + TypeScript. État actuel :
+Plateforme interactive : cours, simulateur 2D, exercices corrigés à données variables, quiz, examens de module et suivi de progression.
 
-- `src/lib/mechanics/` : moteur de calcul des structures planes (méthode des
-  déplacements : poutres, portiques, treillis, rotules ; efforts internes et
-  déformée exacts ; calcul « à la main » des poutres isostatiques).
-- Tests : `npm test` (Vitest).
+### Démarrer
 
-Interface, cours, simulateur et exercices : à venir.
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm test           # tests unitaires (moteur, générateurs, contenus)
+npm run typecheck
+npm run build      # build de production (pages statiques)
+```
+
+Déploiement : projet Next.js standard, déployable tel quel sur Vercel (aucune variable d'environnement requise à ce stade).
+
+### Ce qui fonctionne
+
+| Fonction | Contenu |
+|---|---|
+| **Simulateur 2D** | Poutre éditable (appuis, rotules, charges ponctuelles inclinées, réparties trapézoïdales, couples, glisser-déposer), portique paramétré, treillis Pratt / Howe / Warren. Réactions, diagrammes N, T, M, déformée, contraintes, flèche, calculs détaillés (PFS pas à pas, équations par tronçon, contrôle d'équilibre). |
+| **Cours** | 6 modules, 32 chapitres au programme dont 12 rédigés et interactifs : objectif, cours, formules expliquées variable par variable, schémas interactifs, exemple de génie civil, exercices, quiz. |
+| **Exercices** | 18 générateurs à données variables (débutant → avancé), filtres par module, difficulté et type de calcul ; indices, détection des erreurs de signe et d'unité, correction en 6 étapes (données, schéma, équations, calculs, résultat, vérification) recoupée par le solveur. |
+| **Évaluation** | Quiz par chapitre, examen final par module (tirage aléatoire, sans aide, validation à 70 %). |
+| **Progression** | XP et niveaux, série quotidienne, objectif hebdomadaire, maîtrise par chapitre et par module, historique, badges, calendrier d'activité. Stockage local (navigateur). |
+| **Interface** | Thème clair / sombre, responsive (mobile, tablette, ordinateur). |
+
+### Fiabilité des calculs
+
+- Moteur : méthode des déplacements (Euler–Bernoulli, élasticité linéaire), condensation des rotules, efforts internes exacts par équilibre de tronçon, déformée par intégration exacte (Gauss–Legendre sur polynômes par morceaux).
+- **46 tests** : cas de référence analytiques (poutres isostatiques et hyperstatiques, Gerber, portique bi-articulé — formule de Kleinlogel —, treillis par la méthode de Ritter), cohérence calcul « à la main » / solveur, 3 600 exercices générés tous recoupés par le solveur, cohérence des contenus.
+- Convention du cours : torseur de cohésion appliqué à la partie gauche, **dM/dx = −T**, M > 0 fibre inférieure tendue ; diagrammes reportés selon le y local.
+
+Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour l'organisation du code et la feuille de route.

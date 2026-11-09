@@ -110,6 +110,7 @@
   }
 }
 
+@layer components {
 /* Contenu rédigé (cours, corrections) */
 .prose-structura {
   line-height: 1.7;
@@ -168,6 +169,7 @@
   overflow-y: hidden;
   padding: 0.35em 0;
   margin: 0.5em 0;
+}
 }
 
 /* Animations discrètes */

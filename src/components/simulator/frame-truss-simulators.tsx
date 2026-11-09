@@ -74,7 +74,7 @@ export function FrameSimulator() {
   const set = (patch: Partial<typeof p>) => setP((x) => ({ ...x, ...patch }));
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[340px_1fr]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -234,7 +234,7 @@ export function TrussSimulator() {
   const r = h?.reactions ?? 0;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[340px_1fr]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
       <div className="space-y-4">
         <Card>
           <CardHeader>

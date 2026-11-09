@@ -29,8 +29,14 @@ export function Tex({ children, display = false, className }: { children: string
   );
 }
 
+/** Les blocs `$$…$$` écrits en ligne deviennent des équations centrées. */
+function normalizeDisplayMath(src: string) {
+  return src.replace(/\$\$([\s\S]+?)\$\$/g, (_, body: string) => `\n\n$$\n${body.trim()}\n$$\n\n`);
+}
+
 /** Markdown (GFM) avec maths `$…$` et `$$…$$`. */
 export function Md({ children, className }: { children: string; className?: string }) {
+  children = normalizeDisplayMath(children);
   return (
     <div className={cn("prose-structura", className)}>
       <ReactMarkdown

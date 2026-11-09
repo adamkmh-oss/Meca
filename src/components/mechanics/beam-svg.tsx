@@ -186,7 +186,9 @@ export function BeamSchema({
     const color = sel ? "var(--primary)" : "var(--load)";
     if (ld.kind === "point") {
       const { fx, fy } = pointLoadComponents(1, ld.angle);
-      const len = 58;
+      // flèche allongée si la force tombe dans une charge répartie (étiquettes séparées)
+      const under = model.loads.some((o) => o.kind === "dist" && ld.x >= Math.min(o.x1, o.x2) - 1e-9 && ld.x <= Math.max(o.x1, o.x2) + 1e-9);
+      const len = under && fy < 0 ? 58 + 34 + 16 : 58;
       const x = px(ld.x);
       const tip = { x, y: yBeam - 4 };
       const tail = { x: tip.x - fx * len, y: tip.y + fy * len };

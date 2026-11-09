@@ -108,7 +108,7 @@ export function BeamSimulator() {
       : undefined;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[340px_1fr]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
       {/* ----------------------------- Panneau de saisie ----------------------------- */}
       <div className="space-y-4">
         <Card>
