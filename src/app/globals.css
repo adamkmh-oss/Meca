@@ -1,26 +1,191 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ------------------------------------------------------------------ */
+/*  STRUCTURA — jetons de couleur : bleu nuit, blanc, bleu électrique  */
+/* ------------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f7fc;
+  --foreground: #0b1530;
+  --card: #ffffff;
+  --card-foreground: #0b1530;
+  --muted: #eef2fa;
+  --muted-foreground: #56627f;
+  --border: #dce3f0;
+  --input: #cfd8ea;
+  --primary: #1f5eff;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e6eeff;
+  --night: #0b1530;
+  --success: #0f9f58;
+  --success-soft: #e3f6ec;
+  --warning: #c77700;
+  --warning-soft: #fdf1dc;
+  --danger: #d9322b;
+  --danger-soft: #fde8e7;
+  /* schémas */
+  --ink: #0f1a35;
+  --grid: #e7ecf6;
+  --diag-pos: #1f5eff;
+  --diag-pos-fill: rgba(31, 94, 255, 0.16);
+  --diag-neg: #d9322b;
+  --diag-neg-fill: rgba(217, 50, 43, 0.14);
+  --load: #c2410c;
+  --reaction: #0f9f58;
+  --deformed: #7c3aed;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --background: #060b1a;
+  --foreground: #e7ecfa;
+  --card: #0d152c;
+  --card-foreground: #e7ecfa;
+  --muted: #121c38;
+  --muted-foreground: #95a2c4;
+  --border: #1e2a4c;
+  --input: #2a3860;
+  --primary: #4d84ff;
+  --primary-foreground: #ffffff;
+  --primary-soft: #14224a;
+  --night: #e7ecfa;
+  --success: #34c27c;
+  --success-soft: #0f2a20;
+  --warning: #f0a63a;
+  --warning-soft: #2e2210;
+  --danger: #ff6b63;
+  --danger-soft: #331415;
+  --ink: #dfe6f8;
+  --grid: #18233f;
+  --diag-pos: #6e9bff;
+  --diag-pos-fill: rgba(110, 155, 255, 0.2);
+  --diag-neg: #ff7a73;
+  --diag-neg-fill: rgba(255, 122, 115, 0.18);
+  --load: #fb923c;
+  --reaction: #34c27c;
+  --deformed: #b392ff;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-night: var(--night);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ink: var(--ink);
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
   }
 }
 
-body {
-  background: var(--background);
+/* Contenu rédigé (cours, corrections) */
+.prose-structura {
+  line-height: 1.7;
+  font-size: 0.975rem;
+}
+.prose-structura p {
+  margin: 0.6em 0;
+}
+.prose-structura strong {
+  font-weight: 650;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+.prose-structura ul,
+.prose-structura ol {
+  margin: 0.5em 0 0.5em 1.3em;
+}
+.prose-structura ul {
+  list-style: disc;
+}
+.prose-structura ol {
+  list-style: decimal;
+}
+.prose-structura li {
+  margin: 0.25em 0;
+}
+.prose-structura table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 0.92em;
+}
+.prose-structura th,
+.prose-structura td {
+  border: 1px solid var(--border);
+  padding: 0.45em 0.7em;
+  text-align: left;
+}
+.prose-structura th {
+  background: var(--muted);
+  font-weight: 600;
+}
+.prose-structura code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--muted);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+/* KaTeX : lisibilité et débordement horizontal sur mobile */
+.katex {
+  font-size: 1.06em;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.35em 0;
+  margin: 0.5em 0;
+}
+
+/* Animations discrètes */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
 }

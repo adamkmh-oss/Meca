@@ -159,12 +159,12 @@ export function handCalcBeam(model: BeamModel): HandCalc {
     steps.push({
       title: "3. Équations d'équilibre (PFS)",
       latex: [
-        `\\sum F_x = 0 \\;\\Rightarrow\\; H_A${texTerm(sumFx)} = 0 \\;\\Rightarrow\\; H_A = ${tex(HA)}\\ \\text{kN}`,
-        `\\sum F_y = 0 \\;\\Rightarrow\\; V_A${res
+        `\\Sigma F_x = 0 \\;\\Rightarrow\\; H_A${texTerm(sumFx)} = 0 \\;\\Rightarrow\\; H_A = ${tex(HA)}\\ \\text{kN}`,
+        `\\Sigma F_y = 0 \\;\\Rightarrow\\; V_A${res
           .filter((r) => Math.abs(r.fy) > 1e-12)
           .map((r) => texTerm(r.fy))
           .join("")} = 0 \\;\\Rightarrow\\; V_A = ${tex(VA)}\\ \\text{kN}`,
-        `\\sum M_{/A} = 0 \\;\\Rightarrow\\; M_A${mt.latex} = 0 \\;\\Rightarrow\\; M_A = ${tex(MA)}\\ \\text{kN·m}`,
+        `\\Sigma M_{/A} = 0 \\;\\Rightarrow\\; M_A${mt.latex} = 0 \\;\\Rightarrow\\; M_A = ${tex(MA)}\\ \\text{kN·m}`,
       ],
       text: "Moments comptés positifs dans le sens anti-horaire ; forces positives vers le haut et vers la droite.",
     });
@@ -215,20 +215,20 @@ export function handCalcBeam(model: BeamModel): HandCalc {
     });
     const lines: string[] = [];
     lines.push(
-      `\\sum M_{/A} = 0 \\;\\Rightarrow\\; V_B \\times ${tex(span)}${mt.latex} = 0 \\;\\Rightarrow\\; V_B = ${tex(VB)}\\ \\text{kN}`,
+      `\\Sigma M_{/A} = 0 \\;\\Rightarrow\\; V_B \\times ${tex(span)}${mt.latex} = 0 \\;\\Rightarrow\\; V_B = ${tex(VB)}\\ \\text{kN}`,
     );
     lines.push(
-      `\\sum F_y = 0 \\;\\Rightarrow\\; V_A + V_B${res
+      `\\Sigma F_y = 0 \\;\\Rightarrow\\; V_A + V_B${res
         .filter((r) => Math.abs(r.fy) > 1e-12)
         .map((r) => texTerm(r.fy))
         .join("")} = 0 \\;\\Rightarrow\\; V_A = ${tex(VA)}\\ \\text{kN}`,
     );
     if (pinCount === 1) {
       lines.push(
-        `\\sum F_x = 0 \\;\\Rightarrow\\; H_${pinName}${texTerm(sumFx)} = 0 \\;\\Rightarrow\\; H_${pinName} = ${tex(H)}\\ \\text{kN}`,
+        `\\Sigma F_x = 0 \\;\\Rightarrow\\; H_${pinName}${texTerm(sumFx)} = 0 \\;\\Rightarrow\\; H_${pinName} = ${tex(H)}\\ \\text{kN}`,
       );
     } else if (pinCount === 2) {
-      lines.push(`\\sum F_x = 0 \\;\\Rightarrow\\; H_A + H_B${texTerm(sumFx)} = 0`);
+      lines.push(`\\Sigma F_x = 0 \\;\\Rightarrow\\; H_A + H_B${texTerm(sumFx)} = 0`);
     }
     steps.push({
       title: "3. Équations d'équilibre (PFS)",
@@ -241,7 +241,7 @@ export function handCalcBeam(model: BeamModel): HandCalc {
     steps.push({
       title: "4. Vérification",
       latex: [
-        `\\sum M_{/B} = -V_A \\times ${tex(span)}${mtB.latex} = ${tex(checkB, 4)} \\approx 0 \\;\\checkmark`,
+        `\\Sigma M_{/B} = -V_A \\times ${tex(span)}${mtB.latex} = ${tex(checkB, 4)} \\approx 0 \\;\\checkmark`,
       ],
       text: "L'équation des moments écrite en B, non utilisée pour la résolution, doit être vérifiée.",
     });
