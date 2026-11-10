@@ -3,14 +3,14 @@
  * Petits composants de formulaire pour les actions serveur (useActionState) :
  * champ + libellé + erreur accessible, message global, bouton d'envoi.
  */
-import { createContext, useActionState, useContext, useId, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
+import { createContext, startTransition, useActionState, useContext, useId, type ReactNode } from "react";
 import { LoaderCircle, MailCheck } from "lucide-react";
 import type { ActionResult } from "@/lib/auth/dal";
 import { Button, Callout, Input, Label, Select } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 const FieldErrors = createContext<Record<string, string>>({});
+const Pending = createContext(false);
 
 export function ActionForm({
   action,
@@ -24,7 +24,7 @@ export function ActionForm({
   /** Titre d'un écran de confirmation qui remplace le formulaire après succès. */
   successTitle?: string;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState(action, null);
   if (state?.ok && successTitle)
     return (
       <div className="space-y-3 text-center" role="status">
@@ -35,7 +35,20 @@ export function ActionForm({
     );
   return (
     <FieldErrors.Provider value={state && !state.ok ? (state.fields ?? {}) : {}}>
-      <form action={formAction} className={cn("space-y-4", className)} noValidate>
+      <Pending.Provider value={pending}>
+      {/* action : envoi POST même avant le chargement du JavaScript (jamais de mot de passe dans l'URL).
+          onSubmit : une fois la page active, envoi manuel pour garder la saisie si le serveur renvoie une erreur. */}
+      <form
+        action={formAction}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          startTransition(() => formAction(data));
+        }}
+        className={cn("space-y-4", className)}
+        noValidate
+        aria-busy={pending}
+      >
         {state && !state.ok && (
           <div role="alert">
             <Callout tone="danger">{state.error}</Callout>
@@ -48,6 +61,7 @@ export function ActionForm({
         )}
         {children}
       </form>
+      </Pending.Provider>
     </FieldErrors.Provider>
   );
 }
@@ -118,7 +132,7 @@ export function FieldError({ name }: { name: string }) {
 }
 
 export function SubmitButton({ children, className, variant }: { children: ReactNode; className?: string; variant?: "default" | "danger" | "outline" }) {
-  const { pending } = useFormStatus();
+  const pending = useContext(Pending);
   return (
     <Button type="submit" disabled={pending} className={className} variant={variant}>
       {pending && <LoaderCircle className="animate-spin" />}

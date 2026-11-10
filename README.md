@@ -2,44 +2,78 @@
 
 Deux projets dans ce dépôt :
 
-- **`corrections/`** — corrigés PDF de Mécanique des Structures 3 (torseur de cohésion des portiques plans isostatiques), au format des corrigés de référence. Voir `corrections/S4/README.md`.
-- **STRUCTURA** (racine) — plateforme web d'apprentissage de la mécanique des structures pour le BUT Génie Civil – Construction Durable.
+- **STRUCTURA** (racine) : plateforme web d'apprentissage pour les étudiants du BUT Génie Civil – Construction Durable.
+- **`corrections/`** : corrigés PDF de Mécanique des Structures (format des corrigés de référence). Voir `corrections/S4/README.md`.
 
 ## STRUCTURA
 
-Plateforme interactive : cours, simulateur 2D, exercices corrigés à données variables, quiz, examens de module et suivi de progression.
+Cours structurés, simulateurs de mécanique des structures, exercices corrigés côté serveur, QCM, fiches de révision, bibliothèque de documents, suivi de progression individuel, tuteur IA, espace enseignant / administrateur. Comptes sécurisés (Supabase Auth, double authentification), droits par rôle vérifiés côté serveur et dans la base (RLS), conformité RGPD.
 
-### Démarrer
+| | |
+|---|---|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, composants façon shadcn/ui, Lucide, KaTeX |
+| Backend | Actions serveur et routes Next.js, Supabase (PostgreSQL 15, Auth, Storage), validation Zod |
+| IA | API Claude côté serveur uniquement, outils de calcul vérifiés + recherche dans les ressources publiées (RAG) |
+| Qualité | Vitest (unitaires + intégration sur vraie pile Supabase), Playwright (bout en bout) |
+| Exploitation | Vercel, Supabase hébergé, Resend (SMTP), Sentry (facultatif), ClamAV (facultatif) |
+
+### Démarrer en local
+
+Prérequis : Node 22, Docker, client `psql`.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm test           # tests unitaires (moteur, générateurs, contenus)
-npm run typecheck
-npm run build      # build de production (pages statiques)
-npm run build:artifact  # version page unique à publier sur claude.ai (artifact/dist/structura.html)
+npm run stack:up        # pile Supabase locale (Postgres, Auth, API, Storage, boîte mail de test)
+npm run content:load    # contenu initial des matières
+npm run dev             # http://localhost:3000
 ```
 
-Accès en ligne : le site est publié en lien privé sur claude.ai (version page unique, voir [`artifact/README.md`](artifact/README.md)). Le tuteur y répond avec le compte Claude de la personne connectée : aucune clé d'API à fournir.
+`stack:up` génère des secrets aléatoires (`infra/local/.env`) et complète `.env.local`. Les e-mails (confirmation, réinitialisation) sont captés localement : http://localhost:54324/messages.
 
-Déploiement : projet Next.js standard, déployable tel quel sur Vercel. Le tuteur IA nécessite la variable d'environnement `ANTHROPIC_API_KEY` (voir `.env.example`) ; sans elle, tout le reste du site fonctionne et le tuteur s'affiche « non configuré ».
+Premier administrateur : créez un compte sur le site, puis
 
-### Ce qui fonctionne
+```bash
+npm run admin:promote -- vous@exemple.fr admin
+```
 
-| Fonction | Contenu |
+### Scripts
+
+| Commande | Rôle |
 |---|---|
-| **Simulateur 2D** | Poutre éditable (appuis, rotules, charges ponctuelles inclinées, réparties trapézoïdales, couples, glisser-déposer), portique paramétré, treillis Pratt / Howe / Warren. Réactions, diagrammes N, T, M, déformée, contraintes, flèche, calculs détaillés (PFS pas à pas, équations par tronçon, contrôle d'équilibre). |
-| **Cours** | 6 modules, 32 chapitres au programme dont 12 rédigés et interactifs : objectif, cours, formules expliquées variable par variable, schémas interactifs, exemple de génie civil, exercices, quiz. |
-| **Exercices** | 18 générateurs à données variables (débutant → avancé), filtres par module, difficulté et type de calcul ; indices, détection des erreurs de signe et d'unité, correction en 6 étapes (données, schéma, équations, calculs, résultat, vérification) recoupée par le solveur. |
-| **Évaluation** | Quiz par chapitre, examen final par module (tirage aléatoire, sans aide, validation à 70 %). |
-| **Progression** | XP et niveaux, série quotidienne, objectif hebdomadaire, maîtrise par chapitre et par module, historique, badges, calendrier d'activité. Stockage local (navigateur). |
-| **Tuteur IA** | Bulle de chat sur toutes les pages et page /tuteur. Base documentaire : tous les chapitres, le programme, la banque d'exercices, les conventions et corrigés de TD (S4, S6, fiche barre inclinée). Modes « expliquer », « indices seulement » (sans révéler la solution), « vérifier mon calcul ». Chaque valeur numérique passe par des outils branchés sur le moteur (poutre, portique, treillis, sections, calculatrice exacte). Niveau adapté à la progression de l'étudiant et à la page consultée. |
-| **Interface** | Thème clair / sombre, responsive (mobile, tablette, ordinateur). |
+| `npm run dev` / `build` / `start` | Développement, build et serveur de production |
+| `npm run typecheck` | Vérification TypeScript |
+| `npm run test:unit` | Tests unitaires (moteur de calcul, générateurs, correction serveur, sécurité, tuteur) |
+| `npm run test:integration` | Tests de sécurité de la base à travers l'API Supabase réelle (RLS, rôles, stockage) |
+| `npm run test:e2e` | Tests de bout en bout dans Chromium (pile locale + serveur Next) |
+| `npm test` | Unitaires + intégration |
+| `npm run stack:up` / `stack:down` / `stack:reset` | Pile Supabase locale |
+| `npm run db:migrate` | Applique les migrations `supabase/migrations` |
+| `npm run content:load` | Charge le contenu initial (n'écrase jamais une modification) |
+| `npm run admin:promote` | Donne un rôle à un compte existant (amorçage) |
+| `npm run build:artifact` | Version page unique hors ligne (sans comptes), publiée sur claude.ai |
+
+### Ce qui est livré
+
+| Domaine | Contenu |
+|---|---|
+| Comptes | Inscription avec vérification d'e-mail, connexion, mot de passe oublié, double authentification TOTP, déconnexion de tous les appareils, protection contre la force brute |
+| Espace étudiant | Tableau de bord (progression par matière, exercices réalisés, taux de réussite, temps d'apprentissage, série, points forts et notions à retravailler, reprise du dernier cours), historique détaillé des tentatives, favoris et fiches sauvegardées, notifications, profil et année d'étude |
+| Matières | 10 matières ; mécanique des structures, RDM et statique avec cours interactifs (6 modules, 12 chapitres, quiz, examens, 18 générateurs d'exercices) ; un cours, une fiche et un exercice corrigé pour chacune des 7 autres, extensibles depuis l'administration |
+| Exercices | QCM (choix unique ou multiple), réponses numériques avec tolérance, réponses libres avec réponse attendue, trois niveaux, corrigé en six parties ; correction calculée par la base, réponses jamais envoyées au navigateur avant la tentative ; refaire et consulter ses tentatives |
+| Simulateur | Poutres, portiques, treillis : appuis, charges ponctuelles et réparties, réactions, diagrammes N, V, M, déformée, étapes de calcul (méthode des déplacements, vérifiée par tests) |
+| Administration | Matières, chapitres, leçons et fiches (éditeur Markdown + LaTeX avec aperçu), exercices, questions, clés et corrigés ; brouillon / publication / archivage ; documents PDF et images (contrôle du format réel, URL signées) ; comptes, rôles, suspension, suppression ; signalements ; statistiques ; journal d'audit |
+| Tuteur IA | Explications, indices sans solution, vérification d'un calcul, exercices adaptés ; valeurs calculées par le moteur ; recherche dans les ressources validées ; réservé aux comptes, quotas par compte |
+| RGPD | Politique de confidentialité, mentions légales, cookies (strictement nécessaires), export JSON, suppression de compte, durées de conservation appliquées |
+
+### Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) : organisation du code et choix techniques
+- [`docs/BASE-DE-DONNEES.md`](docs/BASE-DE-DONNEES.md) : schéma, relations, règles d'accès (RLS), fonctions
+- [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md) : mise en production (Supabase, Vercel, domaine, e-mails, sauvegardes, maintenance)
+- [`docs/SECURITE.md`](docs/SECURITE.md) : mesures, correspondance OWASP Top 10, checklist avant mise en production
+- [`docs/RGPD.md`](docs/RGPD.md) : registre des traitements, durées de conservation, procédures
+- [`artifact/README.md`](artifact/README.md) : version page unique hors ligne
 
 ### Fiabilité des calculs
 
-- Moteur : méthode des déplacements (Euler–Bernoulli, élasticité linéaire), condensation des rotules, efforts internes exacts par équilibre de tronçon, déformée par intégration exacte (Gauss–Legendre sur polynômes par morceaux).
-- **69 tests** : cas de référence analytiques (poutres isostatiques et hyperstatiques, Gerber, portique bi-articulé — formule de Kleinlogel —, treillis par la méthode de Ritter), cohérence calcul « à la main » / solveur, 3 600 exercices générés tous recoupés par le solveur, cohérence des contenus, outils et boucle du tuteur (client simulé, historique en ajout seul), version publiée (adresses, transport du tuteur par Claude intégré).
-- Convention du cours : torseur de cohésion appliqué à la partie gauche, **dM/dx = −T**, M > 0 fibre inférieure tendue ; diagrammes reportés selon le y local.
-
-Voir [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) pour l'organisation du code et la feuille de route.
+Moteur : méthode des déplacements (Euler–Bernoulli), condensation des rotules, efforts internes exacts par équilibre de tronçon, déformée par intégration exacte. Convention du cours : torseur de cohésion sur la partie gauche, dM/dx = −T, M > 0 fibre inférieure tendue. Cas de référence analytiques, 3 600 exercices générés recoupés par le solveur ; la correction côté serveur réutilise exactement les mêmes générateurs.

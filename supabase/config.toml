@@ -1,0 +1,74 @@
+# Configuration Supabase (CLI) : `supabase link` puis `supabase db push` pour
+# appliquer les migrations au projet hébergé ; les réglages [auth] ci-dessous
+# sont à reporter dans le tableau de bord (Authentication) ou via `supabase config push`.
+project_id = "structura"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[storage]
+enabled = true
+file_size_limit = "20MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 10
+password_requirements = "lower_upper_letters_digits"
+
+[auth.rate_limit]
+email_sent = 30
+sign_in_sign_ups = 30
+token_verifications = 30
+token_refresh = 150
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = true
+max_frequency = "1m0s"
+otp_expiry = 3600
+
+[auth.email.template.confirmation]
+subject = "Confirmez votre adresse e-mail"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Réinitialisation de votre mot de passe"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirmez votre nouvelle adresse e-mail"
+content_path = "./supabase/templates/email-change.html"
+
+# Envoi réel des e-mails (production) : SMTP de Resend
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_API_KEY)"
+# admin_email = "no-reply@votre-domaine.fr"
+# sender_name = "STRUCTURA"
+
+[auth.mfa]
+max_enrolled_factors = 5
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

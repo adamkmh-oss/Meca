@@ -1,17 +1,59 @@
 # STRUCTURA — architecture
 
+## Vue d'ensemble
+
+```
+Navigateur ──HTTPS──▶ Next.js (Vercel)
+                       ├─ proxy.ts : nonce CSP, rafraîchissement de session, redirections rapides
+                       ├─ pages serveur : lecture via le client Supabase de l'utilisateur (RLS)
+                       ├─ actions serveur / routes API : validation Zod, droits revérifiés (DAL)
+                       │     └─ clé de service limitée à : notes corrigées par le serveur,
+                       │        limitation de débit, suspension / suppression de comptes
+                       └─ /api/tuteur ──▶ API Claude (clé côté serveur uniquement)
+                    Supabase
+                       ├─ Auth (GoTrue) : mots de passe hachés, e-mails, jetons, MFA TOTP
+                       ├─ PostgREST + PostgreSQL : RLS sur toutes les tables, fonctions security definer
+                       └─ Storage : seau privé « documents », URL signées 60 s
+```
+
+Choix structurants :
+
+- **Le navigateur ne parle jamais directement à la base**, sauf pour déposer un fichier sur une URL signée à usage unique. Toutes les lectures et écritures passent par le serveur Next.js avec la session de l'utilisateur (cookies HttpOnly), et la base applique la RLS : un oubli de contrôle côté serveur reste bloqué par la base.
+- **Défense en profondeur sur les droits** : permission vérifiée dans l'action (`actionUser`), dans la page (`requirePermission`) et dans la base (`has_permission` dans les politiques RLS et les fonctions). Le rôle n'est jamais lu dans les métadonnées fournies par l'utilisateur.
+- **Correction côté serveur** : pour les exercices de la base, la fonction `submit_attempt` corrige à partir des clés stockées dans des tables illisibles par les étudiants ; pour le cursus intégré, le serveur régénère l'exercice avec la même graine et recorrige. Le navigateur n'envoie jamais de note.
+- **Toutes les pages sont rendues à la demande** (nonce CSP par requête et contenu dépendant de la session). Les contenus et le moteur restent légers ; la base est indexée pour les requêtes par utilisateur.
+- **Contenus mixtes** : le cursus intégré (code relu, interactif : schémas, simulateurs, générateurs) et les contenus de la base (rédigés depuis l'administration, avec cycle de publication). Une matière référence ses modules intégrés (`subjects.builtin_modules`) et ses chapitres en base.
+
 ## Pile technique
 
-- **Next.js 16** (App Router, TypeScript), pages pré-rendues statiquement (`generateStaticParams`).
+- **Next.js 16** (App Router, TypeScript), proxy (ex-middleware), actions serveur, `forbidden()` (authInterrupts).
+- **Supabase** : `@supabase/ssr` (cookies HttpOnly, SameSite=Lax), `@supabase/supabase-js`. Migrations SQL versionnées dans `supabase/migrations`.
 - **Tailwind CSS 4** ; composants d'interface au style shadcn/ui (`src/components/ui`), Radix Slot, class-variance-authority.
 - **KaTeX** + react-markdown / remark-math pour les formules.
 - **SVG** pour toutes les représentations mécaniques (pas de bibliothèque de graphiques : les diagrammes sont tracés à partir des stations du solveur).
-- **Vitest** pour les tests.
+- **Vitest** (unitaires, intégration contre la pile Supabase locale) et **Playwright** (bout en bout).
 
 ## Organisation
 
 ```
+supabase/
+  migrations/         schéma SQL, rôles et permissions, RLS, fonctions, stockage, conservation
+  templates/          e-mails d'authentification (français)
+  content/            contenu initial des matières (chargé par scripts/content-load.mjs)
+  config.toml         réglages Auth pour le projet hébergé (CLI Supabase)
+infra/local/          pile Supabase locale (docker compose) pour le développement et les tests
+scripts/              stack.mjs (pile locale, migrations), content-load.mjs, admin-promote.mjs
+tests/integration/    sécurité de la base via l'API réelle (RLS, rôles, stockage)
+tests/e2e/            parcours complets dans Chromium
 src/
+  proxy.ts            nonce CSP, session, redirections des pages privées
+  instrumentation.ts  remontée des erreurs serveur (Sentry facultatif)
+  lib/
+    auth/             DAL (getSession, requireUser, requirePermission, actionUser), permissions, validation
+    supabase/         clients serveur (session utilisateur) et service (usage restreint)
+    security/         en-têtes et CSP, limitation de débit, contrôle des fichiers, antivirus, origine des requêtes
+    learning/         correction serveur du cursus intégré, statistiques, lecture des contenus
+    email/, monitoring.ts, legal.ts, env.ts, env.server.ts
   lib/
     mechanics/        Moteur de calcul (aucune dépendance à React)
       solver.ts         méthode des déplacements, réactions, hyperstaticité, équilibre global
@@ -38,8 +80,16 @@ src/
     exercises/        banque, lecteur d'exercice, figures d'énoncé
     dashboard/        tableau de bord
     layout/, ui/, math/
-  app/                routes : /, /cours, /cours/[module], /cours/[module]/[chapitre], /cours/[module]/examen,
-                      /simulateur, /exercices, /exercices/[id], /tableau-de-bord, /tuteur, /api/tuteur
+  app/
+    (auth)/           connexion, inscription, mot de passe oublié, vérification MFA, actions d'authentification
+    auth/             confirmation des liens e-mail, déconnexion
+    espace/           tableau de bord, historique, favoris, notifications
+    compte/           profil, sécurité, données (export, suppression)
+    matieres/         matières, leçons et fiches, exercices de la base
+    cours/, simulateur/, exercices/, fiches/, ressources/, tuteur/   cursus intégré et outils
+    admin/            vue d'ensemble, contenus, documents, signalements, utilisateurs, journal
+    (legal)/          confidentialité, mentions légales, cookies
+    api/              tuteur, export RGPD, documents (URL signées), temps d'étude
 artifact/             Version page unique publiée sur claude.ai (mêmes pages et composants, build Vite)
 ```
 
@@ -60,8 +110,10 @@ artifact/             Version page unique publiée sur claude.ai (mêmes pages e
 | 3 | Moteur de calcul et simulateur 2D | fait (poutre éditable ; portique et treillis paramétrés) |
 | 4 | Exercices et générateurs | 18 générateurs ; à étendre avec les chapitres |
 | 5 | Tuteur IA | fait : Claude Opus 5.5, base documentaire en cache, outils sur le moteur, modes explication / indices / vérification |
-| 6 | Comptes et progression partagée | à faire : Supabase Auth + PostgreSQL derrière `ProgressBackend`, classement facultatif |
-| 7 | Tests, optimisation | en continu |
+| 6 | Comptes, base de données, administration, RGPD | fait : Supabase (Auth, RLS, Storage), espace étudiant, espace enseignant / admin |
+| 7 | Tests, sécurité, déploiement | fait : tests unitaires, d'intégration et de bout en bout ; voir docs/SECURITE.md et docs/DEPLOIEMENT.md |
+
+Prochaines étapes : compléter les 20 chapitres du cursus intégré listés « en rédaction », enrichir les contenus des 7 matières en base, classement facultatif (avec consentement), import de la progression locale à la création du compte.
 
 Pistes pour le simulateur : édition libre des nœuds et barres pour les portiques, charges sur portiques inclinés, tassements d'appui, combinaisons d'actions ELU / ELS.
 
@@ -71,7 +123,9 @@ Pistes pour le simulateur : édition libre des nœuds et barres pour les portiqu
 - Prompt système = consignes + base documentaire (~66 000 caractères), mise en cache 1 h (`cache_control`) : seules les questions sont facturées au tarif plein après le premier appel.
 - Historique en ajout seul : le serveur renvoie les messages produits (réflexion, appels et résultats d'outils compris), le navigateur les conserve tels quels et les renvoie au tour suivant. Le contexte de chaque tour (mode, page, profil) est un message `role: "system"` ajouté après la question.
 - Fiabilité : outils obligatoires pour toute valeur numérique ; entrées d'outils validées ; `fallbacks: "default"` en cas de refus ; `prefix_mismatch_behavior: "drop_block"` si l'historique a été altéré.
-- Production : la progression étant locale, la route est publique ; la limite de débit est indicative (mémoire d'instance). Avec les comptes (phase 6), réserver l'accès aux utilisateurs connectés.
+- Accès réservé aux comptes connectés ayant la permission `ai.use` ; quotas par compte en base (`ai_begin` : 6 questions par minute, 80 par jour), compteurs d'usage sans contenu (`ai_usage`).
+- RAG : outil `rechercher_ressources` (recherche plein texte française sur les leçons et exercices publiés, exécutée avec la session de l'étudiant, donc filtrée par la RLS). La consigne impose de distinguer valeurs vérifiées (outils), contenus validés (ressources citées) et explications de l'assistant.
+- Données transmises au fournisseur : texte des questions, mode, page, indicateurs de progression ; jamais de nom, d'e-mail ni d'identifiant.
 
 ## Version publiée sur claude.ai
 

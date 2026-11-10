@@ -4,7 +4,8 @@ import { ArrowRight, BookOpen, FlaskConical, LayoutDashboard, PenLine } from "lu
 import { Container } from "@/components/layout/app-shell";
 import { MODULES, AVAILABLE_CHAPTERS } from "@/content/modules";
 import { GENERATORS } from "@/lib/exercises/generators";
-import { Button, Card, CardContent } from "@/components/ui";
+import { Button, Callout, Card, CardContent } from "@/components/ui";
+import { getSession } from "@/lib/auth/dal";
 import { WidgetMount } from "@/components/course/widget-mount";
 import { ContinueCard } from "@/components/dashboard/continue-card";
 
@@ -15,9 +16,12 @@ const FEATURES = [
   { icon: LayoutDashboard, title: "Progression", text: "XP, série quotidienne, badges, objectif hebdomadaire et maîtrise de chaque chapitre.", href: "/tableau-de-bord" },
 ];
 
-export default function Home() {
+export default async function Home({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
+  const deleted = (await searchParams)?.compte === "supprime";
+  const session = await getSession();
   return (
     <Container className="space-y-12">
+      {deleted && <Callout tone="success">Votre compte et toutes ses données ont été supprimés.</Callout>}
       <section className="grid grid-cols-1 items-center gap-8 pt-2 lg:grid-cols-[1.05fr_1fr]">
         <div className="space-y-5 animate-rise">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
@@ -41,7 +45,17 @@ export default function Home() {
                 <FlaskConical /> Ouvrir le simulateur
               </Link>
             </Button>
+            <Button asChild size="lg" variant="secondary">
+              <Link href={session ? "/espace" : "/inscription"}>{session ? "Mon espace" : "Créer un compte gratuit"}</Link>
+            </Button>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Et aussi :{" "}
+            <Link href="/matieres" className="text-primary hover:underline">
+              RDM, statique, béton armé, géotechnique, matériaux, topographie, thermique, construction durable, lecture de plans
+            </Link>
+            .
+          </p>
           <div className="flex gap-6 pt-1 text-sm text-muted-foreground">
             <span>
               <strong className="text-foreground">{MODULES.length}</strong> modules

@@ -1,6 +1,6 @@
 "use server";
 /** Actions du compte : profil, adresse, mot de passe, MFA, sessions, suppression. */
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -16,6 +16,7 @@ async function wrap<T>(fn: () => Promise<ActionResult<T>>): Promise<ActionResult
   try {
     return await fn();
   } catch (e) {
+    unstable_rethrow(e); // redirect() et notFound() doivent remonter
     if (e instanceof ActionError) return { ok: false, error: e.message };
     console.error("[compte]", e);
     return { ok: false, error: "L'opération n'a pas abouti." };

@@ -13,7 +13,7 @@ import { RouteView, installNavigation } from "./router";
 installNavigation();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AppShell>
+    <AppShell offline>
       <RouteView />
     </AppShell>
   </StrictMode>,

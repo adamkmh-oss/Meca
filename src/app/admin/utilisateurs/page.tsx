@@ -37,7 +37,7 @@ export default async function UsersAdmin({ searchParams }: { searchParams: Promi
       <PageHeader title="Utilisateurs" description={`${total} compte(s). Les changements de rôle et de statut sont journalisés.`} />
       <form className="mb-4 flex flex-wrap gap-2" role="search">
         <Input name="q" defaultValue={q} placeholder="Rechercher (e-mail, nom)" className="h-9 max-w-xs" aria-label="Rechercher" />
-        <select name="role" defaultValue={role ?? ""} className="h-9 rounded-lg border border-input bg-card px-2 text-sm" aria-label="Rôle">
+        <select name="role" defaultValue={role ?? ""} className="h-9 rounded-lg border border-input bg-card px-2 text-sm" aria-label="Filtrer par rôle">
           <option value="">Tous les rôles</option>
           <option value="student">Étudiants</option>
           <option value="teacher">Enseignants</option>

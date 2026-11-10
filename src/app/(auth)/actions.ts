@@ -22,7 +22,7 @@ export async function signIn(_: ActionResult | null, form: FormData): Promise<Ac
   const ip = await clientIp();
   // Force brute et bourrage d'identifiants : limite par adresse IP et par compte visé.
   const [byIp, byEmail] = await Promise.all([
-    throttle("login-ip", ip, 30, 600),
+    throttle("login-ip", ip, Number(process.env.AUTH_LOGIN_LIMIT_PER_IP ?? 30), 600),
     throttle("login-email", parsed.data.email, 8, 900),
   ]);
   if (!byIp || !byEmail) return { ok: false, error: TOO_MANY };

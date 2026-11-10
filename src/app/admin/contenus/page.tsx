@@ -73,10 +73,10 @@ export default async function ContentsPage() {
                       </Link>
                     </div>
                   </div>
-                  <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
+                  <ul className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
                     {[...c.lessons].sort((a, b) => a.position - b.position).map((l) => (
-                      <li key={l.id} className="flex items-center justify-between gap-2">
-                        <Link href={`/admin/lecons/${l.id}`} className="truncate hover:text-primary">
+                      <li key={l.id} className="flex min-w-0 items-center justify-between gap-2">
+                        <Link href={`/admin/lecons/${l.id}`} className="min-w-0 truncate hover:text-primary">
                           {l.kind === "fiche" ? "Fiche · " : ""}
                           {l.title}
                         </Link>
@@ -84,8 +84,8 @@ export default async function ContentsPage() {
                       </li>
                     ))}
                     {[...c.exercises].sort((a, b) => a.position - b.position).map((e) => (
-                      <li key={e.id} className="flex items-center justify-between gap-2">
-                        <Link href={`/admin/exercices/${e.id}`} className="truncate hover:text-primary">
+                      <li key={e.id} className="flex min-w-0 items-center justify-between gap-2">
+                        <Link href={`/admin/exercices/${e.id}`} className="min-w-0 truncate hover:text-primary">
                           Exercice · {e.title}
                         </Link>
                         <StatusBadge status={e.status} />

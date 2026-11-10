@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { actionUser, ActionError, dbErrorMessage, type ActionResult } from "@/lib/auth/dal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { builtinChapter, gradeExam, gradeGenerator, gradeQuiz, subjectOfModule } from "@/lib/learning/builtin";
@@ -17,6 +18,7 @@ async function guard<T>(fn: () => Promise<ActionResult<T>>): Promise<ActionResul
   try {
     return await fn();
   } catch (e) {
+    unstable_rethrow(e);
     if (e instanceof ActionError) return { ok: false, error: e.message };
     if (e instanceof z.ZodError) return { ok: false, error: "Données invalides." };
     console.error("[learning]", e);

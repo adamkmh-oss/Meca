@@ -4,7 +4,7 @@
  * serveur (actionUser) ; la base applique en plus la RLS et les déclencheurs
  * (publication réservée à content.publish, journal d'audit).
  */
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { actionUser, ActionError, dbErrorMessage, type ActionResult } from "@/lib/auth/dal";
@@ -15,10 +15,12 @@ async function run<T = undefined>(fn: () => Promise<ActionResult<T>>): Promise<A
   try {
     return await fn();
   } catch (e) {
+    unstable_rethrow(e);
     if (e instanceof ActionError) return { ok: false, error: e.message };
-    if (e instanceof z.ZodError) return { ok: false, error: "Vérifiez le formulaire.", fields: fieldErrors(e) };
-    // redirect() lève une exception spéciale : la relancer
-    if (e && typeof e === "object" && "digest" in e) throw e;
+    if (e instanceof z.ZodError) {
+      if (process.env.NODE_ENV === "development") console.warn("[admin] validation", e.issues.map((i) => `${i.path.join(".")}: ${i.message}`));
+      return { ok: false, error: "Vérifiez le formulaire.", fields: fieldErrors(e) };
+    }
     console.error("[admin]", e);
     return { ok: false, error: "L'opération n'a pas abouti." };
   }

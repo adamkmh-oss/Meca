@@ -31,6 +31,9 @@ export default defineConfig({
       { find: /^next\/link$/, replacement: r("artifact/shims/next-link.tsx") },
       { find: /^next\/navigation$/, replacement: r("artifact/shims/next-navigation.ts") },
       { find: /^@\/lib\/tutor\/transport$/, replacement: r("artifact/sample-transport.ts") },
+      // Pas de comptes ni de base dans la version page unique
+      { find: /^@\/(lib\/auth\/dal|lib\/learning\/content|app\/actions\/learning|app\/actions\/exercises)$/, replacement: r("artifact/stubs/server.ts") },
+      { find: /^server-only$/, replacement: r("artifact/stubs/empty.ts") },
       { find: /^@\//, replacement: r("src") + "/" },
     ],
   },

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qualite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Audit des dépendances de production
+        run: npm audit --omit=dev --audit-level=high
+      - name: Tests unitaires
+        run: npm run test:unit
+      - name: Build de production
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+      # Pile Supabase locale (Postgres, Auth, PostgREST, Storage) pour les tests réels
+      - name: Pile Supabase locale
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          npm run stack:up
+          npm run content:load
+          echo "AUTH_LOGIN_LIMIT_PER_IP=1000" >> .env.local
+      - name: Tests d'intégration (RLS, droits, stockage)
+        run: npm run test:integration
+      - name: Tests de bout en bout (Playwright)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run build
+          (npm run start &) ; for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/connexion && break; sleep 1; done
+          E2E_BASE_URL=http://localhost:3000 npm run test:e2e

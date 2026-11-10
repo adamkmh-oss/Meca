@@ -218,6 +218,13 @@ export function AppShell({ children, offline = false }: { children: React.ReactN
           </div>
           {!offline && <AccountBox viewer={viewer} />}
           <p className="px-1 text-[11px] leading-snug text-muted-foreground">BUT Génie Civil – Construction Durable</p>
+          {!offline && (
+            <p className="flex flex-wrap gap-x-2 px-1 text-[11px] text-muted-foreground">
+              <Link href="/confidentialite" className="hover:text-foreground">Confidentialité</Link>
+              <Link href="/mentions-legales" className="hover:text-foreground">Mentions légales</Link>
+              <Link href="/cookies" className="hover:text-foreground">Cookies</Link>
+            </p>
+          )}
         </div>
       </aside>
 
@@ -243,8 +250,13 @@ export function AppShell({ children, offline = false }: { children: React.ReactN
         <div className="fixed inset-x-0 top-14 z-20 max-h-[calc(100dvh-3.5rem)] space-y-3 overflow-y-auto border-b border-border bg-card p-3 shadow-lg lg:hidden">
           <NavLinks items={items} onNavigate={() => setOpen(false)} />
           {!offline && (
-            <div className="border-t border-border pt-3">
+            <div className="space-y-2 border-t border-border pt-3">
               <AccountBox viewer={viewer} />
+              <p className="flex flex-wrap gap-x-3 px-1 text-xs text-muted-foreground">
+                <Link href="/confidentialite">Confidentialité</Link>
+                <Link href="/mentions-legales">Mentions légales</Link>
+                <Link href="/cookies">Cookies</Link>
+              </p>
             </div>
           )}
         </div>
