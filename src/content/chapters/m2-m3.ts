@@ -17,6 +17,12 @@ export const m2Liaisons: ChapterContent = {
           type: "md",
           md: "| Liaison | Mouvements bloqués | Inconnues | Exemple réel |\n|---|---|---|---|\n| Appui simple | 1 translation | 1 ($V$) | appareil d'appui glissant, poutre posée sur un mur |\n| Articulation | 2 translations | 2 ($H$, $V$) | pied de poteau métallique sur platine mince |\n| Encastrement | 2 translations + rotation | 3 ($H$, $V$, $M$) | poteau scellé dans une fondation massive |",
         },
+        {
+          type: "callout",
+          tone: "warning",
+          title: "Vocabulaire du cours MS1",
+          md: "Dans le cours MS1 de l'IUT, l'« appui simple » désigne le **pivot** (2 inconnues $X$, $Y$) et la liaison à une seule inconnue s'appelle « appui simple **glissant** ». Ce cours ajoute l'« appui plan » (glissière : $X$ et $M_z$). Raisonnez toujours sur les mouvements bloqués plutôt que sur le nom. Voir la matière Statique, chapitre « MS1 — Notions de base ».",
+        },
       ],
     },
     {

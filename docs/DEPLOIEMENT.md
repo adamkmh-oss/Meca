@@ -29,7 +29,7 @@ Cible : **Vercel** (application) + **Supabase** (base, authentification, fichier
 6. **Authentication > SMTP** : Resend (`smtp.resend.com`, port 465, utilisateur `resend`, mot de passe = clé API Resend), expéditeur du domaine vérifié.
 7. **Authentication > Multi-Factor** : TOTP activé.
 8. **Authentication > Rate Limits** : la connexion passe par le serveur Next.js, donc Supabase voit l'adresse IP de Vercel pour **tous** les étudiants. Relevez la limite « sign-ups and sign-ins » à la hauteur des pics attendus (ex. 300 par 5 min pour une promotion qui se connecte en début de TD). La protection individuelle reste assurée par l'application, qui limite selon l'IP réelle de l'étudiant (30 essais / 10 min) et par compte (8 essais / 15 min). Facultatif : CAPTCHA (hCaptcha / Turnstile) sur l'inscription.
-9. Contenu initial : `NEXT_PUBLIC_SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run content:load`.
+9. Contenu initial et cours de l'enseignant (MS1–MS3) : `NEXT_PUBLIC_SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npm run content:load` (idempotent : n'insère que ce qui manque).
 10. Tâche planifiée de conservation (Database > Extensions : activer `pg_cron`) :
     ```sql
     select cron.schedule('structura-retention', '17 3 * * *', $$select public.retention_cleanup()$$);

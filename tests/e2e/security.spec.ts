@@ -48,7 +48,7 @@ test.describe("en-têtes et protections HTTP", () => {
 test.describe("affichage mobile", () => {
   test.use({ viewport: { width: 375, height: 812 } });
   test("aucun défilement horizontal sur les pages principales", async ({ page }) => {
-    for (const p of ["/", "/matieres", "/matieres/geotechnique", "/matieres/geotechnique/identification-contraintes/phases-contraintes-effectives", "/fiches", "/inscription", "/simulateur", "/cours"]) {
+    for (const p of ["/", "/matieres", "/matieres/geotechnique", "/matieres/geotechnique/identification-contraintes/phases-contraintes-effectives", "/matieres/statique/ms1-notions-de-base/liaisons-principe-fondamental", "/matieres/mecanique-structures/ms3-flambement-poteaux/contrainte-critique-longueur-flambement", "/fiches", "/inscription", "/simulateur", "/cours"]) {
       await page.goto(p);
       await noHorizontalScroll(page);
     }

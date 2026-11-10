@@ -39,7 +39,7 @@ Choix structurants :
 supabase/
   migrations/         schéma SQL, rôles et permissions, RLS, fonctions, stockage, conservation
   templates/          e-mails d'authentification (français)
-  content/            contenu initial des matières (chargé par scripts/content-load.mjs)
+  content/            contenu initial des matières et cours de l'enseignant MS1–MS3 (chargés par scripts/content-load.mjs)
   config.toml         réglages Auth pour le projet hébergé (CLI Supabase)
 infra/local/          pile Supabase locale (docker compose) pour le développement et les tests
 scripts/              stack.mjs (pile locale, migrations), content-load.mjs, admin-promote.mjs

@@ -97,6 +97,17 @@ describe("Base documentaire et prompt", () => {
     expect(k).toContain("Structure (S6)");
     expect(k.length).toBeLessThan(400_000);
   });
+  it("contient les cours de l'enseignant, leurs conventions et l'écart relevé (Ritter)", () => {
+    const k = buildKnowledge();
+    expect(k).toContain("Cours de l'enseignant (MS1, MS2, MS3");
+    expect(k).toContain("Fiche — systèmes réticulés (MS1)");
+    expect(k).toContain("Fiche — flambement (MS3)");
+    expect(k).toContain("appui simple glissant");
+    expect(k).toContain("F_5 = -F/\\sqrt3");
+    expect(k).toContain("seules les pages 3 à 5");
+    // la page « sample » de l'artefact limite le prompt à 256 Kio, historique compris
+    expect(new TextEncoder().encode(k).length).toBeLessThan(150_000);
+  });
   it("est déterministe (préfixe stable pour le cache)", () => {
     expect(JSON.stringify(buildSystem())).toBe(JSON.stringify(buildSystem()));
     expect(JSON.stringify(requestParams([]))).toBe(JSON.stringify(requestParams([])));

@@ -3,7 +3,7 @@
  * Compatible composants serveur et client.
  */
 import katex from "katex";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -34,6 +34,15 @@ function normalizeDisplayMath(src: string) {
   return src.replace(/\$\$([\s\S]+?)\$\$/g, (_, body: string) => `\n\n$$\n${body.trim()}\n$$\n\n`);
 }
 
+/** Les tableaux larges défilent dans leur cadre au lieu d'élargir la page (mobile). */
+const MD_COMPONENTS: Components = {
+  table: ({ node: _node, ...props }) => (
+    <div className="table-scroll" role="region" aria-label="Tableau" tabIndex={0}>
+      <table {...props} />
+    </div>
+  ),
+};
+
 /** Markdown (GFM) avec maths `$…$` et `$$…$$`. */
 export function Md({ children, className }: { children: string; className?: string }) {
   children = normalizeDisplayMath(children);
@@ -42,6 +51,7 @@ export function Md({ children, className }: { children: string; className?: stri
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: "ignore", macros }]]}
+        components={MD_COMPONENTS}
       >
         {children}
       </ReactMarkdown>

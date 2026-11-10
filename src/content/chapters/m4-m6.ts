@@ -111,6 +111,12 @@ export const m4Treillis: ChapterContent = {
           ],
           note: "Si $m + r > 2n$ : hyperstatique ; si $m + r < 2n$ : mécanisme. La condition est nécessaire mais pas suffisante : le treillis doit être triangulé.",
         },
+        {
+          type: "callout",
+          tone: "warning",
+          title: "Cours MS1 : autre écriture, autre signe",
+          md: "Le cours MS1 écrit l'isostaticité intérieure $b = 2n - 3$ ($b$ barres) : c'est la même condition avec $r = 3$. Il compte aussi l'effort dans une barre **positif en compression**, alors que ce chapitre et le simulateur prennent $N > 0$ en **traction**. Précisez toujours « traction » ou « compression ». Méthodes graphique (épure de Cremona) et des coupures (Ritter) : matière Mécanique des structures, chapitre « MS1 — Les systèmes réticulés ».",
+        },
       ],
     },
     {
