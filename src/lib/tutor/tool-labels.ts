@@ -2,6 +2,8 @@
 export function describeToolCall(name: string, input: unknown): string {
   const i = (input ?? {}) as Record<string, unknown>;
   switch (name) {
+    case "rechercher_ressources":
+      return `Recherche dans les ressources : « ${String(i.requete ?? "").slice(0, 60)} »`;
     case "analyser_poutre":
       return `Analyse d'une poutre de ${i.longueur ?? "?"} m`;
     case "analyser_portique":

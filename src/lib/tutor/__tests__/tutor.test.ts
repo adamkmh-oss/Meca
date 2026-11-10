@@ -196,3 +196,39 @@ describe("Boucle du tuteur", () => {
     expect(last.content[0].is_error).toBe(true);
   });
 });
+
+describe("outil de recherche (RAG) fourni par l'appelant", () => {
+  it("est déclaré après les outils de calcul et exécuté de façon asynchrone", async () => {
+    const { SEARCH_TOOL } = await import("../tools");
+    expect(requestParams([], [SEARCH_TOOL]).tools?.map((t) => (t as { name: string }).name)).toEqual([...TOOLS.map((t) => t.name), "rechercher_ressources"]);
+    const calls: string[] = [];
+    let turn = 0;
+    const client: TutorClient = {
+      stream: (params) => {
+        const n = turn++;
+        const listeners: ((d: string) => void)[] = [];
+        return {
+          on: (_e: "text", l: (d: string) => void) => listeners.push(l),
+          finalMessage: async () => {
+            if (n === 0) {
+              expect(params.tools?.length).toBe(TOOLS.length + 1);
+              return { id: "m1", type: "message", role: "assistant", model: "x", stop_reason: "tool_use", stop_sequence: null, usage: {}, content: [{ type: "tool_use", id: "t1", name: "rechercher_ressources", input: { requete: "pont thermique" } }] } as never;
+            }
+            listeners.forEach((l) => l("Voir la fiche."));
+            const last = params.messages.at(-1)!;
+            calls.push(JSON.stringify(last.content));
+            return { id: "m2", type: "message", role: "assistant", model: "x", stop_reason: "end_turn", stop_sequence: null, usage: {}, content: [{ type: "text", text: "Voir la fiche." }] } as never;
+          },
+        } satisfies StreamLike;
+      },
+    };
+    const events: TutorEvent[] = [];
+    await runTutorTurn(client, [], [{ role: "user", content: "Pont thermique ?" }], (e) => events.push(e), {
+      definitions: [SEARCH_TOOL],
+      run: async (name, input) => (name === "rechercher_ressources" ? { ok: true, content: JSON.stringify({ requete: (input as { requete: string }).requete, resultats: [] }) } : null),
+    });
+    expect(events.map((e) => e.type)).toEqual(["tool", "tool_result", "text", "done"]);
+    expect(calls[0]).toContain("pont thermique");
+  });
+});
+

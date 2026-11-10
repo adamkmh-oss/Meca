@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleCheck, CircleX, Eye, Lightbulb, Shuffle } from "lucide-react";
 import { checkAnswer, findGenerator, randomSeed } from "@/lib/exercises/generators";
 import { parseNum } from "@/components/simulator/fields";
@@ -7,6 +7,8 @@ import { Md } from "@/components/math";
 import { Badge, Button, Callout, Card, CardContent, Input } from "@/components/ui";
 import { ExerciseFigureView } from "./exercise-figure";
 import { recordAttempt, XP_BY_LEVEL } from "@/lib/progress/store";
+import { useViewer } from "@/components/layout/viewer";
+import { saveGeneratorAttempt } from "@/app/actions/learning";
 import { chapterById } from "@/content/modules";
 import { LEVEL_LABEL } from "@/content/types";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,8 @@ const SOLUTION_PARTS: { key: keyof import("@/lib/exercises/types").ExerciseSolut
 export interface ExerciseOutcome {
   score: number;
   max: number;
+  /** Réponses brutes (le serveur recorrige à partir d'elles). */
+  values: Record<string, number | null>;
 }
 
 export function ExercisePlayer({
@@ -57,8 +61,11 @@ export function ExercisePlayer({
   const [recorded, setRecorded] = useState(false);
   const [hints, setHints] = useState<Record<string, boolean>>({});
   const [showSolution, setShowSolution] = useState(false);
+  const viewer = useViewer();
+  const startedAt = useRef(0);
 
   useEffect(() => {
+    startedAt.current = Date.now();
     setValues({});
     setChecked(false);
     setRecorded(false);
@@ -82,6 +89,7 @@ export function ExercisePlayer({
     if (!recorded) {
       setRecorded(true);
       const max = ex.questions.length;
+      const raw = Object.fromEntries(results.map((r) => [r.q.key, r.v]));
       if (record) {
         const ch = chapterById(gen.chapterId);
         recordAttempt({
@@ -96,7 +104,8 @@ export function ExercisePlayer({
           xp: Math.round((XP_BY_LEVEL[gen.level] * score) / max),
         });
       }
-      onDone?.({ score, max });
+      if (record && viewer) void saveGeneratorAttempt({ generatorId: gen.id, seed, values: raw, durationSeconds: Math.round((Date.now() - startedAt.current) / 1000) });
+      onDone?.({ score, max, values: raw });
     }
   };
 

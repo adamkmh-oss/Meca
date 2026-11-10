@@ -12,7 +12,8 @@ import type {
   BetaToolUseBlock,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { buildSystem } from "./prompt";
-import { runTool, TOOLS } from "./tools";
+import type { BetaTool } from "@anthropic-ai/sdk/resources/beta/messages/messages";
+import { runTool, TOOLS, type ToolOutcome } from "./tools";
 import { describeToolCall } from "./tool-labels";
 import type { TutorEvent } from "./transport-types";
 
@@ -35,7 +36,18 @@ export function anthropicTutorClient(client: Anthropic): TutorClient {
   return { stream: (params) => client.beta.messages.stream(params) };
 }
 
-export function requestParams(messages: BetaMessageParam[]): BetaMessageStreamParams {
+/**
+ * Outils supplémentaires fournis par l'appelant (ex. recherche dans les
+ * ressources de la plateforme, exécutée avec la session de l'étudiant).
+ * La liste doit rester identique d'un tour à l'autre (cache du préfixe).
+ */
+export interface ExtraTools {
+  definitions: BetaTool[];
+  /** Exécute l'outil s'il lui appartient ; null sinon. Les entrées doivent être validées dans run. */
+  run(name: string, input: unknown): Promise<ToolOutcome | null>;
+}
+
+export function requestParams(messages: BetaMessageParam[], extra: BetaTool[] = []): BetaMessageStreamParams {
   return {
     model: TUTOR_MODEL,
     max_tokens: 64000,
@@ -44,7 +56,7 @@ export function requestParams(messages: BetaMessageParam[]): BetaMessageStreamPa
     thinking: { type: "adaptive", block_binding: { prefix_mismatch_behavior: "drop_block" } },
     output_config: { effort: "medium" },
     system: buildSystem(),
-    tools: TOOLS,
+    tools: extra.length ? [...TOOLS, ...extra] : TOOLS,
     messages,
   };
 }
@@ -58,13 +70,14 @@ export async function runTutorTurn(
   history: BetaMessageParam[],
   turn: BetaMessageParam[],
   emit: (e: TutorEvent) => void,
+  extra?: ExtraTools,
 ): Promise<BetaMessageParam[]> {
   const added: BetaMessageParam[] = [...turn];
   const messages: BetaMessageParam[] = [...history, ...turn];
   let jsonRetries = 0;
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-    const stream = client.stream(requestParams(messages));
+    const stream = client.stream(requestParams(messages, extra?.definitions));
     stream.on("text", (delta) => emit({ type: "text", text: delta }));
 
     let message: BetaMessage;
@@ -105,7 +118,7 @@ export async function runTutorTurn(
 
     for (const t of toolUses) {
       emit({ type: "tool", id: t.id, name: t.name, label: describeToolCall(t.name, t.input) });
-      const out = runTool(t.name, t.input);
+      const out = (await extra?.run(t.name, t.input).catch((): ToolOutcome => ({ ok: false, content: "Recherche indisponible." }))) ?? runTool(t.name, t.input);
       results.push({ type: "tool_result", tool_use_id: t.id, content: out.content, ...(out.ok ? {} : { is_error: true }) });
       emit({ type: "tool_result", id: t.id, ok: out.ok });
     }

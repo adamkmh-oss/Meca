@@ -2,19 +2,66 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bot, BookOpen, FlaskConical, Flame, Home, LayoutDashboard, Menu, Moon, PenLine, Sparkles, Sun, X } from "lucide-react";
+import {
+  Bell,
+  Bot,
+  BookOpen,
+  FileText,
+  FlaskConical,
+  Flame,
+  Home,
+  Library,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  NotebookTabs,
+  PenLine,
+  Shield,
+  Sparkles,
+  Sun,
+  UserRound,
+  X,
+} from "lucide-react";
+import { useViewer, type Viewer } from "./viewer";
+import { ROLE_LABEL, isStaff } from "@/lib/auth/permissions";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { cn } from "@/lib/utils";
 import { levelFromXp, streak, useProgress } from "@/lib/progress/store";
 
-const NAV = [
-  { href: "/", label: "Accueil", icon: Home, exact: true },
-  { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/cours", label: "Cours", icon: BookOpen },
-  { href: "/simulateur", label: "Simulateur", icon: FlaskConical },
-  { href: "/exercices", label: "Exercices", icon: PenLine },
-  { href: "/tuteur", label: "Tuteur IA", icon: Bot },
-];
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof Home;
+  exact?: boolean;
+}
+
+/** Navigation selon le contexte : visiteur, étudiant connecté, équipe pédagogique, version hors ligne. */
+function navFor(viewer: Viewer | null, offline: boolean): NavItem[] {
+  if (offline) {
+    return [
+      { href: "/", label: "Accueil", icon: Home, exact: true },
+      { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
+      { href: "/cours", label: "Cours", icon: BookOpen },
+      { href: "/simulateur", label: "Simulateur", icon: FlaskConical },
+      { href: "/exercices", label: "Exercices", icon: PenLine },
+      { href: "/tuteur", label: "Tuteur IA", icon: Bot },
+    ];
+  }
+  const items: NavItem[] = [
+    { href: "/", label: "Accueil", icon: Home, exact: true },
+    viewer ? { href: "/espace", label: "Mon espace", icon: LayoutDashboard } : { href: "/tableau-de-bord", label: "Ma progression", icon: LayoutDashboard },
+    { href: "/matieres", label: "Matières", icon: Library },
+    { href: "/cours", label: "Cours de mécanique", icon: BookOpen },
+    { href: "/simulateur", label: "Simulateur", icon: FlaskConical },
+    { href: "/exercices", label: "Exercices", icon: PenLine },
+    { href: "/fiches", label: "Fiches de révision", icon: NotebookTabs },
+  ];
+  if (viewer) items.push({ href: "/ressources", label: "Ressources", icon: FileText });
+  items.push({ href: "/tuteur", label: "Tuteur IA", icon: Bot });
+  if (viewer && isStaff(viewer.permissions)) items.push({ href: "/admin", label: "Administration", icon: Shield });
+  return items;
+}
 
 function Logo() {
   return (
@@ -71,17 +118,18 @@ function XpPill() {
   );
 }
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <nav className="flex flex-col gap-0.5">
-      {NAV.map((n) => {
+    <nav className="flex flex-col gap-0.5" aria-label="Navigation principale">
+      {items.map((n) => {
         const active = n.exact ? pathname === n.href : pathname.startsWith(n.href);
         return (
           <Link
             key={n.href}
             href={n.href}
             onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               active ? "bg-primary-soft text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -96,24 +144,79 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function AccountBox({ viewer }: { viewer: Viewer | null }) {
+  if (!viewer) {
+    return (
+      <div className="flex gap-2 px-1">
+        <Link href="/connexion" className="flex-1 rounded-lg border border-border px-3 py-1.5 text-center text-sm font-medium hover:bg-muted">
+          Connexion
+        </Link>
+        <Link href="/inscription" className="flex-1 rounded-lg bg-primary px-3 py-1.5 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          S&apos;inscrire
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <Link href="/compte" className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 hover:bg-muted" title="Mon compte">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <UserRound className="size-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium">{viewer.displayName}</span>
+          <span className="block text-[11px] text-muted-foreground">{ROLE_LABEL[viewer.role]}</span>
+        </span>
+      </Link>
+      <NotificationsLink unread={viewer.unread} />
+      <form action="/auth/deconnexion" method="post">
+        <button type="submit" className="inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer" aria-label="Se déconnecter" title="Se déconnecter">
+          <LogOut className="size-[18px]" />
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function NotificationsLink({ unread }: { unread: number }) {
+  return (
+    <Link
+      href="/espace/notifications"
+      className="relative inline-flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+      aria-label={unread ? `Notifications : ${unread} non lue(s)` : "Notifications"}
+    >
+      <Bell className="size-[18px]" />
+      {unread > 0 && (
+        <span className="absolute right-1 top-1 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white">{unread > 9 ? "9+" : unread}</span>
+      )}
+    </Link>
+  );
+}
+
+export function AppShell({ children, offline = false }: { children: React.ReactNode; offline?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const viewer = useViewer();
+  const items = navFor(viewer, offline);
   useEffect(() => setOpen(false), [pathname]);
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
+      <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-3 focus:py-2 focus:shadow">
+        Aller au contenu
+      </a>
       {/* Barre latérale (ordinateur) */}
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-6 border-r border-border bg-card px-4 py-5 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh flex-col gap-6 overflow-y-auto border-r border-border bg-card px-4 py-5 lg:flex">
         <div className="px-1">
           <Logo />
         </div>
-        <NavLinks />
+        <NavLinks items={items} />
         <div className="mt-auto space-y-3 border-t border-border pt-4">
           <div className="flex items-center justify-between px-1">
             <XpPill />
             <ThemeToggle />
           </div>
+          {!offline && <AccountBox viewer={viewer} />}
           <p className="px-1 text-[11px] leading-snug text-muted-foreground">BUT Génie Civil – Construction Durable</p>
         </div>
       </aside>
@@ -123,6 +226,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Logo />
         <div className="flex items-center gap-1">
           <XpPill />
+          {viewer && !offline && <NotificationsLink unread={viewer.unread} />}
           <ThemeToggle />
           <button
             type="button"
@@ -136,12 +240,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       {open && (
-        <div className="fixed inset-x-0 top-14 z-20 border-b border-border bg-card p-3 shadow-lg lg:hidden">
-          <NavLinks onNavigate={() => setOpen(false)} />
+        <div className="fixed inset-x-0 top-14 z-20 max-h-[calc(100dvh-3.5rem)] space-y-3 overflow-y-auto border-b border-border bg-card p-3 shadow-lg lg:hidden">
+          <NavLinks items={items} onNavigate={() => setOpen(false)} />
+          {!offline && (
+            <div className="border-t border-border pt-3">
+              <AccountBox viewer={viewer} />
+            </div>
+          )}
         </div>
       )}
 
-      <main className="min-w-0">{children}</main>
+      <main id="contenu" className="min-w-0">
+        {children}
+      </main>
       <TutorLauncher />
     </div>
   );

@@ -6,12 +6,18 @@
 import { TutorError, type TutorAvailability, type TutorEvent, type TutorRequest } from "./transport-types";
 
 export async function checkTutor(): Promise<TutorAvailability> {
+  let reason = "not_configured";
   try {
     const j = await (await fetch("/api/tuteur")).json();
     if (j?.configured) return { ok: true };
+    reason = j?.reason ?? reason;
   } catch {
     /* route injoignable : traité comme non configuré */
   }
+  if (reason === "login_required") {
+    return { ok: false, title: "Connectez-vous pour utiliser le tuteur", message: "Le tuteur IA est réservé aux comptes étudiants : connectez-vous ou créez un compte gratuit (page Connexion)." };
+  }
+  if (reason === "forbidden") return { ok: false, title: "Tuteur indisponible", message: "Votre compte n'a pas accès au tuteur." };
   return {
     ok: false,
     title: "Tuteur non configuré",

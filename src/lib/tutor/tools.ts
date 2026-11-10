@@ -517,3 +517,20 @@ export function runTool(name: string, rawInput: unknown): ToolOutcome {
 }
 
 export { describeToolCall } from "./tool-labels";
+
+/* ------------------------------------------------------------------ */
+/*           Recherche dans les ressources publiées (RAG)               */
+/* ------------------------------------------------------------------ */
+export const SEARCH_TOOL: BetaTool = {
+  name: "rechercher_ressources",
+  description:
+    "Recherche plein texte dans les leçons, fiches et exercices publiés par l'équipe pédagogique de la plateforme (toutes matières : béton armé, géotechnique, thermique, topographie, matériaux, construction durable, lecture de plans, mécanique…). Renvoie des extraits avec le titre et le lien de la page. À utiliser avant de répondre sur une notion qui ne figure pas dans la documentation de référence, et pour citer la ressource vérifiée.",
+  eager_input_streaming: true,
+  input_schema: {
+    type: "object",
+    properties: { requete: { type: "string", description: "Mots-clés en français (ex. « résistance thermique paroi »)." } },
+    required: ["requete"],
+  },
+};
+
+export const SearchInput = z.object({ requete: z.string().trim().min(2).max(300) });

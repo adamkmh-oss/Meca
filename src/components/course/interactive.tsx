@@ -6,7 +6,10 @@ import type { QuizQuestion } from "@/content/types";
 import { Md } from "@/components/math";
 import { Badge, Button, Callout, Card, CardContent, Progress, Segmented } from "@/components/ui";
 import { ExercisePlayer } from "@/components/exercises/exercise-player";
-import { findGenerator, mulberry32 } from "@/lib/exercises/generators";
+import { findGenerator } from "@/lib/exercises/generators";
+import { buildExamItems, type ExamItem } from "@/lib/learning/builtin";
+import { useViewer } from "@/components/layout/viewer";
+import { markChapterDone, saveExamAttempt, saveQuizAttempt } from "@/app/actions/learning";
 import { chapterMastery, markChapterRead, recordAttempt, useProgress } from "@/lib/progress/store";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +20,8 @@ export function Quiz({ chapterId, moduleId, title, questions }: { chapterId: str
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [answers, setAnswers] = useState<boolean[]>([]);
+  const [picks, setPicks] = useState<number[]>([]);
+  const viewer = useViewer();
   const done = idx >= questions.length;
   const q = questions[Math.min(idx, questions.length - 1)];
   const score = answers.filter(Boolean).length;
@@ -25,16 +30,20 @@ export function Quiz({ chapterId, moduleId, title, questions }: { chapterId: str
     if (picked === null) return;
     const ok = picked === q.answer;
     const next = [...answers, ok];
+    const nextPicks = [...picks, picked];
     setAnswers(next);
+    setPicks(nextPicks);
     if (next.length === questions.length) {
       const s = next.filter(Boolean).length;
       recordAttempt({ kind: "quiz", ref: chapterId, title: `Quiz — ${title}`, chapter: chapterId, module: moduleId, score: s, max: questions.length, xp: 5 * s });
+      if (viewer) void saveQuizAttempt({ chapterId, answers: nextPicks });
     }
   };
   const restart = () => {
     setIdx(0);
     setPicked(null);
     setAnswers([]);
+    setPicks([]);
   };
 
   if (done) {
@@ -153,15 +162,22 @@ export function ReadMarker({ chapterId }: { chapterId: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const s = useProgress();
   const read = !!s.chaptersRead[chapterId];
+  const viewer = useViewer();
+  const sent = useRef(false);
   useEffect(() => {
     const el = ref.current;
-    if (!el || read) return;
+    if (!el || (read && (!viewer || sent.current))) return;
     const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) markChapterRead(chapterId);
+      if (!entries.some((e) => e.isIntersecting)) return;
+      if (!read) markChapterRead(chapterId);
+      if (viewer && !sent.current) {
+        sent.current = true;
+        void markChapterDone(chapterId);
+      }
     });
     io.observe(el);
     return () => io.disconnect();
-  }, [chapterId, read]);
+  }, [chapterId, read, viewer]);
   return (
     <div ref={ref} className="flex items-center gap-2 text-sm text-muted-foreground">
       {read ? (
@@ -206,16 +222,8 @@ export function ExamStatus({ moduleId }: { moduleId: string }) {
 /* ------------------------------------------------------------------ */
 /*                           Examen de module                           */
 /* ------------------------------------------------------------------ */
-interface ExamItemQuiz {
-  kind: "quiz";
-  q: QuizQuestion;
-  chapter: string;
-}
-interface ExamItemEx {
-  kind: "exercise";
-  gen: string;
-  seed: number;
-}
+type ExamItemQuiz = Extract<ExamItem, { kind: "quiz" }>;
+type ExamItemEx = Extract<ExamItem, { kind: "exercise" }>;
 
 export function ModuleExam({
   moduleId,
@@ -228,22 +236,13 @@ export function ModuleExam({
   pool: { chapter: string; q: QuizQuestion }[];
   generators: string[];
 }) {
+  const viewer = useViewer();
   const [seed, setSeed] = useState<number | null>(null);
   const [started, setStarted] = useState<number | null>(null);
   const [now, setNow] = useState(0);
-  const items = useMemo(() => {
-    if (seed === null) return [];
-    const r = mulberry32(seed);
-    const shuffled = [...pool].sort(() => r() - 0.5).slice(0, 8);
-    const ex = [...generators].sort(() => r() - 0.5).slice(0, 2);
-    const list: (ExamItemQuiz | ExamItemEx)[] = [
-      ...shuffled.map((p) => ({ kind: "quiz" as const, q: p.q, chapter: p.chapter })),
-      ...ex.map((g, k) => ({ kind: "exercise" as const, gen: g, seed: Math.floor(r() * 900000) + 1 + k })),
-    ];
-    return list;
-  }, [seed, pool, generators]);
+  const items = useMemo(() => (seed === null ? [] : buildExamItems(pool, generators, seed)), [seed, pool, generators]);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [exScores, setExScores] = useState<Record<number, { score: number; max: number }>>({});
+  const [exScores, setExScores] = useState<Record<number, { score: number; max: number; values?: Record<string, number | null> }>>({});
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
@@ -286,6 +285,10 @@ export function ModuleExam({
   const finish = () => {
     setFinished(true);
     recordAttempt({ kind: "exam", ref: moduleId, title: `Examen — ${moduleTitle}`, module: moduleId, score: got, max: total, xp: got / total >= 0.7 ? 100 : 20 });
+    if (viewer && seed !== null) {
+      const exerciseValues = Object.fromEntries(Object.entries(exScores).map(([k, v]) => [k, v.values ?? {}]));
+      void saveExamAttempt({ moduleId, seed, quizAnswers, exerciseValues, durationSeconds: started ? Math.round((Date.now() - started) / 1000) : undefined });
+    }
   };
 
   return (
