@@ -44,3 +44,6 @@ next-env.d.ts
 
 # version page unique (artefact claude.ai)
 /artifact/dist/
+
+# pile Supabase locale (secrets générés)
+/infra/local/.env
