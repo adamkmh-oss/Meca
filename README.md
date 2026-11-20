@@ -51,6 +51,7 @@ npm run admin:promote -- vous@exemple.fr admin
 | `npm run content:load` | Charge le contenu initial et les cours de l'enseignant (insère seulement ce qui manque, n'écrase jamais une modification) |
 | `npm run admin:promote` | Donne un rôle à un compte existant (amorçage) |
 | `npm run build:artifact` | Version page unique hors ligne (sans comptes), publiée sur claude.ai |
+| `npm run build:cahier` | Cahier de mécanique seul, en page unique (`artifact/dist/cahier.html`) |
 
 ### Ce qui est livré
 
@@ -65,6 +66,21 @@ npm run admin:promote -- vous@exemple.fr admin
 | Administration | Matières, chapitres, leçons et fiches (éditeur Markdown + LaTeX avec aperçu), exercices, questions, clés et corrigés ; brouillon / publication / archivage ; documents PDF et images (contrôle du format réel, URL signées) ; comptes, rôles, suspension, suppression ; signalements ; statistiques ; journal d'audit |
 | Tuteur IA | Explications, indices sans solution, vérification d'un calcul, exercices adaptés ; valeurs calculées par le moteur ; recherche dans les ressources validées ; réservé aux comptes, quotas par compte |
 | RGPD | Politique de confidentialité, mentions légales, cookies (strictement nécessaires), export JSON, suppression de compte, durées de conservation appliquées |
+
+### Cahier de mécanique (`/cahier`)
+
+Application de prise de notes façon GoodNotes / OneNote, dédiée à la mécanique des structures, utilisable au stylet (iPad + Apple Pencil), au doigt ou à la souris. Disponible sur le site (`/cahier`, plein écran) et en page unique autonome (`npm run build:cahier` → `artifact/dist/cahier.html`).
+
+| Domaine | Contenu |
+|---|---|
+| Écriture | Stylo sensible à la pression, surligneur (sous l'encre), gomme trait entier ou précise (« surligneur seulement » en option), lasso (déplacer, agrandir, copier, couper, dupliquer, couleur, premier/arrière-plan), formes (droite, flèches, rectangle, ellipse, triangle, cote), reconnaissance de formes en gardant le stylet immobile, texte Markdown + LaTeX, formules LaTeX avec palette, images, import de PDF (sujets de TD) à annoter |
+| Gestes | Stylet = outil, doigt = défiler (ou dessiner : réglage auto / oui / stylet seul), paume ignorée pendant l'écriture, pincement = zoom, tape à 2 / 3 doigts = annuler / rétablir ; souris : molette, Ctrl + molette, Espace + glisser ; raccourcis clavier |
+| Pages | Cahiers multiples, pages A4 portrait / paysage, papiers blanc, ligné, petits carreaux, Seyès, pointillés, millimétré ; modèles « étude de poutre », « diagrammes N, T, M », « fiche exercice » ; papier blanc, crème, ardoise ; vignettes, titres, réorganisation |
+| Bibliothèque mécanique | 47 symboles paramétrables (structures types, appuis, charges, réactions, coupures et torseurs de cohésion, partie gauche / droite isolée, éléments, sections, axes et allures de diagrammes) ; 25 blocs PFS, méthode et formulaire (cas de charge, contraintes, sections, flambement, treillis, unités) |
+| Poutre calculée | Appuis, rotules et charges saisis dans un dialogue avec aperçu : schéma, réactions, diagrammes N, T, M et déformée tracés par le moteur ; PFS rédigé ; coupures tronçon par tronçon (équilibre de la partie gauche écrit comme au tableau, expressions de N(x), T(x), M(x), valeurs aux bornes, moment extrémal) en texte ou en figures ; double-toucher pour modifier, tout se recalcule |
+| Stockage | IndexedDB du navigateur (sauvegarde automatique, dernier cahier rouvert au lancement), sauvegarde / import `.json`, impression et export PDF (pages A4 à taille réelle), version HTML imprimable |
+
+Code : `src/lib/notebook` (modèle, géométrie, encre, reconnaissance, symboles, formulaire, rédaction des coupures, stockage — testés dans `src/lib/notebook/__tests__`) et `src/components/notebook` (éditeur, pages, panneaux, dialogues). Les coupures générées sont recoupées avec le solveur sur les cas types et 60 poutres aléatoires.
 
 ### Documentation
 

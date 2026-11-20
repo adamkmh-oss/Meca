@@ -4,6 +4,17 @@ Version « page unique » du site, publiée comme artefact privé sur claude.ai.
 Mêmes pages, composants, contenus et moteur de calcul que le site Next.js ;
 seuls la navigation et le tuteur sont adaptés.
 
+## Cahier de mécanique seul
+
+```bash
+npm run build:cahier        # → artifact/dist/cahier.html
+```
+
+Même code que la page `/cahier` du site (`artifact/cahier-main.tsx`), sans le
+reste de la plateforme : c'est la version « à portée de main » publiée à part.
+Les cahiers restent dans le navigateur de chaque personne (IndexedDB) ;
+la sauvegarde `.json` et l'export passent par la capacité `downloads`.
+
 ## Mettre à jour la version en ligne
 
 ```bash

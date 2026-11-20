@@ -9,6 +9,8 @@ import tailwindcss from "@tailwindcss/vite";
 
 const root = path.resolve(__dirname, "..");
 const r = (p: string) => path.resolve(root, p);
+/** ARTIFACT=cahier : version page unique du cahier de mécanique seul. */
+const cahier = process.env.ARTIFACT === "cahier";
 
 /** KaTeX : ne garder que les polices woff2 (les formats woff/ttf triplent le poids). */
 function katexWoff2Only(): Plugin {
@@ -39,7 +41,7 @@ export default defineConfig({
   },
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
   build: {
-    outDir: r("artifact/dist/build"),
+    outDir: r(cahier ? "artifact/dist/cahier-build" : "artifact/dist/build"),
     emptyOutDir: true,
     target: "es2022",
     cssCodeSplit: false,
@@ -47,14 +49,18 @@ export default defineConfig({
     modulePreload: false,
     chunkSizeWarningLimit: 4000,
     rollupOptions: {
-      input: r("artifact/main.tsx"),
+      input: r(cahier ? "artifact/cahier-main.tsx" : "artifact/main.tsx"),
       // Les directives "use client" des composants n'ont pas de sens hors de Next.js.
       onLog(level, log, handler) {
         if (log.code === "MODULE_LEVEL_DIRECTIVE") return;
+        // pdf.js : import.meta.url n'est utile qu'au worker séparé, non utilisé ici
+        if (log.code === "EMPTY_IMPORT_META") return;
         handler(level, log);
       },
       output: {
         format: "iife",
+        // import différé de pdf.js : tout dans un seul fichier
+        inlineDynamicImports: true,
         entryFileNames: "app.js",
         assetFileNames: (a) => (a.names?.[0]?.endsWith(".css") ? "app.css" : "[name][extname]"),
       },

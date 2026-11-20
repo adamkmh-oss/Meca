@@ -136,9 +136,12 @@ export function BeamSchema({
   onDrag,
   className,
   compact = false,
+  supportLabels = false,
 }: {
   model: BeamModel;
   reactions?: ReactionDisplay[];
+  /** Lettres A, B, C… sous les appuis (dans l'ordre des abscisses). */
+  supportLabels?: boolean;
   showDims?: boolean;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
@@ -188,7 +191,8 @@ export function BeamSchema({
       const { fx, fy } = pointLoadComponents(1, ld.angle);
       // flèche allongée si la force tombe dans une charge répartie (étiquettes séparées)
       const under = model.loads.some((o) => o.kind === "dist" && ld.x >= Math.min(o.x1, o.x2) - 1e-9 && ld.x <= Math.max(o.x1, o.x2) + 1e-9);
-      const len = under && fy < 0 ? 58 + 34 + 16 : 58;
+      // (longueur limitée pour que l'étiquette reste dans le dessin)
+      const len = under && fy < 0 ? 58 + 34 - 2 : 58;
       const x = px(ld.x);
       const tip = { x, y: yBeam - 4 };
       const tail = { x: tip.x - fx * len, y: tip.y + fy * len };
@@ -301,6 +305,14 @@ export function BeamSchema({
           </g>
         );
       })}
+      {supportLabels &&
+        [...model.supports]
+          .sort((a, b) => a.x - b.x)
+          .map((s, k) => (
+            <text key={`lab${s.id}`} x={px(Math.min(Math.max(s.x, 0), L))} y={yBeam + 58} textAnchor="middle" fontSize={14} fontWeight={700} fill="currentColor">
+              {"ABCDEFGHIJ"[k] ?? ""}
+            </text>
+          ))}
       {/* rotules */}
       {model.hinges.map((h) => (
         <g key={h.id} onPointerDown={startDrag(h.id, "hinge")} className={handleCls}>

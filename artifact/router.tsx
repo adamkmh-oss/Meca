@@ -26,6 +26,7 @@ import * as ExercisePage from "@/app/exercices/[id]/page";
 import * as SimulatorPage from "@/app/simulateur/page";
 import * as DashboardPage from "@/app/tableau-de-bord/page";
 import * as TutorPage from "@/app/tuteur/page";
+import * as CahierPage from "@/app/cahier/page";
 
 import { decodeHash, encodePath } from "./paths";
 
@@ -155,6 +156,8 @@ function match(pathname: string): { mod: PageModule; params: Params } | null {
       return s.length === 1 ? m(DashboardPage) : null;
     case "tuteur":
       return s.length === 1 ? m(TutorPage) : null;
+    case "cahier":
+      return s.length === 1 ? m(CahierPage) : null;
   }
   return null;
 }

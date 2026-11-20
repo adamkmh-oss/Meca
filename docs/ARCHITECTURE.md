@@ -64,6 +64,8 @@ src/
       sections.ts       sections (rectangle, disque, tube, IPE) et matériaux
     exercises/        Générateurs d'exercices (données variables, correction en 6 étapes)
     progress/         Suivi de progression (XP, série, badges, maîtrise) — interface ProgressBackend
+    notebook/         Cahier de mécanique : modèle, géométrie, encre, reconnaissance de formes,
+                      symboles, formulaire, rédaction PFS et coupures, stockage IndexedDB
     tutor/            Tuteur IA
       knowledge/        base documentaire (chapitres, programme, exercices, corrigés de TD), texte déterministe
       prompt.ts         consignes du tuteur + contexte de tour (mode, page, profil)
@@ -76,6 +78,7 @@ src/
   components/
     mechanics/        dessins SVG : schéma de poutre (glisser-déposer), diagrammes, portiques et treillis
     simulator/        simulateur (poutre, portique, treillis), saisie, résultats et calculs détaillés
+    notebook/         cahier de notes (éditeur plein écran, pages, outils, bibliothèque mécanique, poutre calculée)
     course/           rendu des chapitres, schémas interactifs, quiz, examen de module
     exercises/        banque, lecteur d'exercice, figures d'énoncé
     dashboard/        tableau de bord

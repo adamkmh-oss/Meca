@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   Moon,
+  NotebookPen,
   NotebookTabs,
   PenLine,
   Shield,
@@ -44,6 +45,7 @@ function navFor(viewer: Viewer | null, offline: boolean): NavItem[] {
       { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
       { href: "/cours", label: "Cours", icon: BookOpen },
       { href: "/simulateur", label: "Simulateur", icon: FlaskConical },
+      { href: "/cahier", label: "Cahier de notes", icon: NotebookPen },
       { href: "/exercices", label: "Exercices", icon: PenLine },
       { href: "/tuteur", label: "Tuteur IA", icon: Bot },
     ];
@@ -54,6 +56,7 @@ function navFor(viewer: Viewer | null, offline: boolean): NavItem[] {
     { href: "/matieres", label: "Matières", icon: Library },
     { href: "/cours", label: "Cours de mécanique", icon: BookOpen },
     { href: "/simulateur", label: "Simulateur", icon: FlaskConical },
+    { href: "/cahier", label: "Cahier de notes", icon: NotebookPen },
     { href: "/exercices", label: "Exercices", icon: PenLine },
     { href: "/fiches", label: "Fiches de révision", icon: NotebookTabs },
   ];
@@ -199,6 +202,9 @@ export function AppShell({ children, offline = false }: { children: React.ReactN
   const viewer = useViewer();
   const items = navFor(viewer, offline);
   useEffect(() => setOpen(false), [pathname]);
+
+  // Le cahier occupe tout l'écran (comme une application de prise de notes).
+  if (pathname === "/cahier" || pathname.startsWith("/cahier/")) return <>{children}</>;
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
