@@ -42,7 +42,7 @@ export function searchTextOf(nb: Notebook): string {
     for (const e of p.elements) {
       if (e.type === "text") parts.push(e.text);
       else if (e.type === "math") parts.push(e.tex);
-      else if (e.type === "beam" && e.title) parts.push(e.title);
+      else if ((e.type === "beam" || e.type === "truss") && e.title) parts.push(e.title);
     }
   }
   return parts.join("\n").slice(0, 20000);
@@ -98,7 +98,7 @@ const element = z.discriminatedUnion("type", [
     fill: z.boolean().optional(),
     label: z.string().max(200).optional(),
   }),
-  z.object({ ...base, type: z.literal("text"), x: num, y: num, w: num, text: z.string().max(100_000), size: num, color, font: z.enum(["sans", "serif", "mono"]).optional(), boxed: z.boolean().optional(), role: z.enum(["pfs", "cuts"]).optional() }),
+  z.object({ ...base, type: z.literal("text"), x: num, y: num, w: num, text: z.string().max(100_000), size: num, color, font: z.enum(["sans", "serif", "mono"]).optional(), boxed: z.boolean().optional(), role: z.enum(["pfs", "cuts", "truss"]).optional() }),
   z.object({ ...base, type: z.literal("math"), x: num, y: num, tex: z.string().max(50_000), size: num, color, boxed: z.boolean().optional() }),
   z.object({ ...base, type: z.literal("image"), x: num, y: num, w: num, h: num, src: str.refine((s) => s.startsWith("data:image/"), "image intégrée attendue") }),
   z.object({
@@ -127,6 +127,22 @@ const element = z.discriminatedUnion("type", [
     show: z.object({ schema: z.boolean(), reactions: z.boolean(), N: z.boolean(), T: z.boolean(), M: z.boolean(), deformee: z.boolean() }),
   }),
   z.object({ ...base, type: z.literal("cut"), x: num, y: num, w: num, model: beamModel, seg: z.number().int().min(0).max(200) }),
+  z.object({
+    ...base,
+    type: z.literal("truss"),
+    x: num,
+    y: num,
+    w: num,
+    title: z.string().max(200).optional(),
+    model: z.object({
+      nodes: z.array(z.object({ id: z.string().min(1).max(8), x: num, y: num, support: z.enum(["free", "pin", "roller", "rollerX"]) })).max(200),
+      bars: z.array(z.object({ id: z.string().min(1).max(20), i: z.string().max(8), j: z.string().max(8) })).max(600),
+      loads: z.array(z.object({ id: z.string().min(1).max(20), node: z.string().max(8), F: num, angle: num })).max(200),
+      E: num.positive(),
+      A: num.positive(),
+    }),
+    show: z.object({ efforts: z.boolean(), reactions: z.boolean(), labels: z.boolean() }),
+  }),
 ]);
 
 const page = z.object({

@@ -19,6 +19,8 @@ export function estimatedHeight(e: NoteElement): number {
       return e.w * 0.8;
     case "cut":
       return e.w * 0.42;
+    case "truss":
+      return e.w * 0.55;
     default:
       return 0;
   }
@@ -97,6 +99,7 @@ export function elementBounds(e: NoteElement): Rect {
     case "math":
     case "beam":
     case "cut":
+    case "truss":
       return { x: e.x, y: e.y, w: e.type === "math" ? (measured.get(e.id)?.w ?? 200) : e.w, h: htmlHeight(e) };
   }
 }
@@ -369,6 +372,7 @@ export function scaleElement<T extends NoteElement>(e: T, k: number, ox: number,
       return { ...e, x: X(e.x), y: Y(e.y), size: r2(Math.max(6, e.size * k)) };
     case "beam":
     case "cut":
+    case "truss":
       return { ...e, x: X(e.x), y: Y(e.y), w: r2(Math.max(120, e.w * k)) };
   }
 }

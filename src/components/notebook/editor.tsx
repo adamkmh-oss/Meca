@@ -31,7 +31,9 @@ import { recognizeShape, shapeFromRecognized, type Recognized } from "@/lib/note
 import { readPref, writePref, type NotebookStore } from "@/lib/notebook/storage";
 import type { SyncStatus } from "@/lib/notebook/cloud";
 import { SYMBOL_BY_KIND } from "@/lib/notebook/symbols";
-import type { BeamEl, CutEl, MathEl, NoteElement, Notebook, Page, Rect, ShapeEl, StrokeEl, SymbolEl, TextEl } from "@/lib/notebook/types";
+import type { BeamEl, CutEl, MathEl, NoteElement, Notebook, Page, Rect, ShapeEl, StrokeEl, SymbolEl, TextEl, TrussEl } from "@/lib/notebook/types";
+import { analyzeTruss, trussMarkdown } from "@/lib/notebook/truss";
+import { TrussDialog, type TrussInsertOptions } from "./truss-dialog";
 import { analyzeBeam } from "@/lib/mechanics/beam";
 import { cutsMarkdown, pfsMarkdown, segmentBounds } from "@/lib/notebook/beam-notes";
 import { onMeasure, PageView, type TextEditing } from "./page-view";
@@ -384,6 +386,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
   /* ----------------------------- dialogues ----------------------------- */
   const [mathDlg, setMathDlg] = useState<{ pageId: string; el?: MathEl; at?: [number, number] } | null>(null);
   const [beamDlg, setBeamDlg] = useState<{ el?: BeamEl; pageId?: string; presetId?: string } | null>(null);
+  const [trussDlg, setTrussDlg] = useState<{ el?: TrussEl } | null>(null);
   const [drawer, setDrawer] = useState<"mechanics" | null>(null);
   const [sidebar, setSidebar] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -500,6 +503,76 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
     };
   }, [stack, pagesRef, transient]);
 
+  /** Place des blocs calculés sous le contenu de la page courante (ou sur une nouvelle page) puis les empile. */
+  const placeGenerated = useCallback(
+    (els: NoteElement[], x: number, selectId: string) => {
+      const c = visibleCenter();
+      const b = boxOf(c.pageId)!;
+      const page = pagesRef.current.find((p) => p.id === c.pageId)!;
+      let bottom = 0;
+      for (const e of page.elements) {
+        const r = elementBounds(e);
+        bottom = Math.max(bottom, r.y + r.h);
+      }
+      let y0 = page.elements.length === 0 ? 48 : Math.round(bottom + 28);
+      let target = c.pageId;
+      const ids = els.map((e) => e.id);
+      const placed = els.map((e) => ({ ...e, x, y: y0 }) as NoteElement);
+      if (y0 > b.h - 240) {
+        const np = { ...newPage(page.paper === "etude-poutre" || page.paper === "exercice" || page.paper === "diagrammes" ? "carreaux" : page.paper, page.color, page.orientation), elements: placed.map((e) => ({ ...e, y: 48 }) as NoteElement) };
+        y0 = 48;
+        target = np.id;
+        const at = pagesRef.current.findIndex((p) => p.id === c.pageId);
+        commit((ps) => {
+          const out = ps.slice();
+          out.splice(at + 1, 0, np);
+          return out;
+        });
+        setTimeout(() => goToPage(at + 1), 30);
+      } else {
+        commit((ps) => mapPage(ps, c.pageId, (p) => ({ ...p, elements: [...p.elements, ...placed] })));
+      }
+      setStack({ pageId: target, ids, y0, x });
+      setToolState("lasso");
+      setSel({ pageId: target, ids: [selectId] });
+    },
+    [commit, visibleCenter, boxOf, pagesRef, goToPage],
+  );
+
+  const insertTruss = useCallback(
+    (opts: TrussInsertOptions, existing?: TrussEl) => {
+      const an = analyzeTruss(opts.model);
+      if (existing) {
+        const group = existing.group;
+        commit((ps) =>
+          ps.map((p) =>
+            p.elements.some((e) => e.id === existing.id || (group && e.group === group))
+              ? {
+                  ...p,
+                  elements: p.elements.map((e) => {
+                    if (e.id === existing.id && e.type === "truss") return { ...e, model: opts.model, show: opts.show, title: opts.title || undefined };
+                    if (group && e.group === group && e.type === "text" && e.role === "truss") return { ...e, text: trussMarkdown(opts.model, an) };
+                    return e;
+                  }),
+                }
+              : p,
+          ),
+        );
+        notify("Treillis recalculé");
+        return;
+      }
+      const b = boxOf(visibleCenter().pageId)!;
+      const group = uid("g");
+      const w = Math.min(640, b.w - 60);
+      const x = Math.round((b.w - w) / 2);
+      const truss: TrussEl = { id: uid("e"), group, type: "truss", x, y: 0, w, title: opts.title || undefined, model: opts.model, show: opts.show };
+      const els: NoteElement[] = [truss];
+      if (opts.notes) els.push({ id: uid("e"), group, role: "truss", type: "text", x, y: 0, w, text: trussMarkdown(opts.model, an), size: 14, color: "#111827" } satisfies TextEl);
+      placeGenerated(els, x, truss.id);
+    },
+    [commit, notify, boxOf, visibleCenter, placeGenerated],
+  );
+
   const insertBeam = useCallback(
     (opts: BeamInsertOptions, existing?: BeamEl) => {
       const an = analyzeBeam(opts.model);
@@ -529,8 +602,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
         notify("Poutre recalculée");
         return;
       }
-      const c = visibleCenter();
-      const b = boxOf(c.pageId)!;
+      const b = boxOf(visibleCenter().pageId)!;
       const group = uid("g");
       const w = Math.min(640, b.w - 60);
       const x = Math.round((b.w - w) / 2);
@@ -543,36 +615,9 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
         const n = segmentBounds(opts.model).length - 1;
         for (let k = 0; k < n; k++) els.push({ id: uid("e"), group, type: "cut", x, y: 0, w, model: opts.model, seg: k } satisfies CutEl);
       } else if (opts.cuts) els.push({ id: uid("e"), group, role: "cuts", type: "text", x, y: 0, w, text: cutsMarkdown(opts.model, an), size: 14, color } satisfies TextEl);
-      // sous le contenu existant de la page courante, sinon sur une nouvelle page
-      const page = pagesRef.current.find((p) => p.id === c.pageId)!;
-      let bottom = 0;
-      for (const e of page.elements) {
-        const r = elementBounds(e);
-        bottom = Math.max(bottom, r.y + r.h);
-      }
-      let y0 = page.elements.length === 0 ? 48 : Math.round(bottom + 28);
-      let target = c.pageId;
-      const ids = els.map((e) => e.id);
-      const placed = els.map((e) => ({ ...e, y: y0 }) as NoteElement);
-      if (y0 > b.h - 240) {
-        const np = { ...newPage(page.paper === "etude-poutre" || page.paper === "exercice" || page.paper === "diagrammes" ? "carreaux" : page.paper, page.color, page.orientation), elements: placed.map((e) => ({ ...e, y: 48 }) as NoteElement) };
-        y0 = 48;
-        target = np.id;
-        const at = pagesRef.current.findIndex((p) => p.id === c.pageId);
-        commit((ps) => {
-          const out = ps.slice();
-          out.splice(at + 1, 0, np);
-          return out;
-        });
-        setTimeout(() => goToPage(at + 1), 30);
-      } else {
-        commit((ps) => mapPage(ps, c.pageId, (p) => ({ ...p, elements: [...p.elements, ...placed] })));
-      }
-      setStack({ pageId: target, ids, y0, x });
-      setToolState("lasso");
-      setSel({ pageId: target, ids: [beam.id] });
+      placeGenerated(els, x, beam.id);
     },
-    [commit, notify, visibleCenter, boxOf, pagesRef, goToPage],
+    [commit, notify, visibleCenter, boxOf, placeGenerated],
   );
 
   /* -------------------------- images et PDF -------------------------- */
@@ -706,6 +751,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       if (e.type === "text") startEditing(pageId, e, false);
       else if (e.type === "math") setMathDlg({ pageId, el: e });
       else if (e.type === "beam") setBeamDlg({ el: e, pageId });
+      else if (e.type === "truss") setTrussDlg({ el: e });
       else {
         setSel({ pageId, ids: [e.id] });
         setPropsOpen(true);
@@ -859,7 +905,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
     if (!p) return null;
     // priorité aux objets au-dessus : encre, puis HTML, puis le reste
     const order = [...p.elements].reverse();
-    const rank = (e: NoteElement) => (e.type === "stroke" && e.tool === "pen" ? 0 : e.type === "text" || e.type === "math" || e.type === "beam" || e.type === "cut" ? 1 : 2);
+    const rank = (e: NoteElement) => (e.type === "stroke" && e.tool === "pen" ? 0 : e.type === "text" || e.type === "math" || e.type === "beam" || e.type === "cut" || e.type === "truss" ? 1 : 2);
     order.sort((a, b) => rank(a) - rank(b));
     for (const e of order) if (hitElement(e, x, y, tol)) return e;
     return null;
@@ -1572,7 +1618,15 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
         onFit={() => fitWidth()}
         onBeam={() => setBeamDlg({})}
       />
-      <EditorToolbar tool={tool} onTool={setTool} settings={settings} onSettings={updateSettings} onBeam={() => setBeamDlg({})} onMechanics={() => setDrawer((d) => (d ? null : "mechanics"))} />
+      <EditorToolbar
+        tool={tool}
+        onTool={setTool}
+        settings={settings}
+        onSettings={updateSettings}
+        onBeam={() => setBeamDlg({})}
+        onTruss={() => setTrussDlg({})}
+        onMechanics={() => setDrawer((d) => (d ? null : "mechanics"))}
+      />
       <div className="relative flex min-h-0 flex-1">
         {sidebar && <PagesSidebar pages={pages} current={currentPageIndex} actions={pageActions} onClose={() => setSidebar(false)} />}
         <div
@@ -1717,6 +1771,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             onSymbol={insertSymbol}
             onSnippet={insertSnippet}
             onBeam={(presetId) => setBeamDlg({ presetId })}
+            onTruss={() => setTrussDlg({})}
             onPage={(tpl) => pageActions.add(currentPageIndex, tpl)}
           />
         )}
@@ -1750,6 +1805,18 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             const d = beamDlg;
             setBeamDlg(null);
             insertBeam(opts, d.el);
+            if (window.innerWidth < 900) setDrawer(null);
+          }}
+        />
+      )}
+      {trussDlg && (
+        <TrussDialog
+          initial={trussDlg.el}
+          onCancel={() => setTrussDlg(null)}
+          onSave={(opts) => {
+            const d = trussDlg;
+            setTrussDlg(null);
+            insertTruss(opts, d.el);
             if (window.innerWidth < 900) setDrawer(null);
           }}
         />

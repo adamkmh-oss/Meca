@@ -399,6 +399,16 @@ const TOOL_ICONS: Record<Tool, React.ReactNode> = {
   hand: <Hand />,
 };
 
+/** Icône « treillis » (triangulation et appuis). */
+export function TrussIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinejoin="round" strokeLinecap="round" aria-hidden>
+      <path d="M3 17 H21 M6 9 H18 M3 17 L6 9 L10 17 L14 9 L17 17 M18 9 L21 17 M6 9 L3 17 M14 9 L17 17" />
+      <path d="M3 17 l-1.5 3 h3 Z M21 17 l-1.5 3 h3 Z" />
+    </svg>
+  );
+}
+
 export function ToolIcon({ tool }: { tool: Tool }) {
   return <>{TOOL_ICONS[tool]}</>;
 }
@@ -409,6 +419,7 @@ export function EditorToolbar({
   settings: s,
   onSettings,
   onBeam,
+  onTruss,
   onMechanics,
 }: {
   tool: Tool;
@@ -416,6 +427,7 @@ export function EditorToolbar({
   settings: ToolSettings;
   onSettings: (p: Partial<ToolSettings>) => void;
   onBeam: () => void;
+  onTruss: () => void;
   onMechanics: () => void;
 }) {
   const tools = (Object.keys(TOOL_ICONS) as Tool[]).map((t) => ({ t, icon: TOOL_ICONS[t] }));
@@ -448,6 +460,9 @@ export function EditorToolbar({
       </ToolButton>
       <ToolButton label="Poutre calculée : réactions, PFS, coupures, diagrammes N, T, M" onClick={onBeam}>
         <Calculator />
+      </ToolButton>
+      <ToolButton label="Treillis calculé : efforts dans les barres, méthode des nœuds" onClick={onTruss}>
+        <TrussIcon />
       </ToolButton>
       <Sep />
       <div className="flex min-w-0 items-center gap-0.5">

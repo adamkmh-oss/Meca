@@ -7,6 +7,7 @@
  * objet (historique d'annulation par simple copie des tableaux).
  */
 import type { BeamModel } from "@/lib/mechanics/beam";
+import type { TrussModel } from "./truss";
 
 export type PaperKind =
   | "blanc"
@@ -103,7 +104,7 @@ export interface TextEl extends Base {
   /** Encadré (résultat, définition). */
   boxed?: boolean;
   /** Texte généré par une poutre calculée (régénéré quand on la modifie). */
-  role?: "pfs" | "cuts";
+  role?: "pfs" | "cuts" | "truss";
 }
 
 /** Formule(s) LaTeX en mode équation, une par ligne. */
@@ -178,14 +179,32 @@ export interface CutEl extends Base {
   seg: number;
 }
 
-export type NoteElement = StrokeEl | ShapeEl | TextEl | MathEl | ImageEl | SymbolEl | BeamEl | CutEl;
+export interface TrussShow {
+  /** Barres colorées et efforts N affichés. */
+  efforts: boolean;
+  reactions: boolean;
+  labels: boolean;
+}
+
+/** Treillis calculé par le moteur (efforts dans les barres), rééditable. */
+export interface TrussEl extends Base {
+  type: "truss";
+  x: number;
+  y: number;
+  w: number;
+  title?: string;
+  model: TrussModel;
+  show: TrussShow;
+}
+
+export type NoteElement = StrokeEl | ShapeEl | TextEl | MathEl | ImageEl | SymbolEl | BeamEl | CutEl | TrussEl;
 export type ElementType = NoteElement["type"];
 
 /** Éléments rendus en HTML (au-dessus des dessins, sous l'encre du stylo). */
-export type HtmlElement = TextEl | MathEl | BeamEl | CutEl;
+export type HtmlElement = TextEl | MathEl | BeamEl | CutEl | TrussEl;
 
 export function isHtmlElement(e: NoteElement): e is HtmlElement {
-  return e.type === "text" || e.type === "math" || e.type === "beam" || e.type === "cut";
+  return e.type === "text" || e.type === "math" || e.type === "beam" || e.type === "cut" || e.type === "truss";
 }
 
 export interface Rect {

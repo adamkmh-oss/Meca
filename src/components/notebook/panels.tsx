@@ -170,12 +170,14 @@ export function MechanicsDrawer({
   onSymbol,
   onSnippet,
   onBeam,
+  onTruss,
   onPage,
 }: {
   onClose: () => void;
   onSymbol: (kind: string) => void;
   onSnippet: (kind: "math" | "text", content: string) => void;
   onBeam: (presetId?: string) => void;
+  onTruss: () => void;
   onPage: (tpl: Partial<Page>) => void;
 }) {
   const [tab, setTab] = useState<"symboles" | "blocs" | "poutres">("symboles");
@@ -198,7 +200,7 @@ export function MechanicsDrawer({
           options={[
             { value: "symboles", label: "Symboles" },
             { value: "blocs", label: "PFS & formules" },
-            { value: "poutres", label: "Poutres" },
+            { value: "poutres", label: "Calculs" },
           ]}
         />
         {tab !== "poutres" && (
@@ -267,8 +269,14 @@ export function MechanicsDrawer({
             <p className="text-[12px] leading-snug text-muted-foreground">
               Saisissez appuis et charges : le cahier dessine le schéma, calcule les réactions (PFS), écrit les coupures tronçon par tronçon et trace N(x), T(x), M(x). Double-touchez la poutre pour la modifier, tout se recalcule.
             </p>
+            <button type="button" onClick={onTruss} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2.5 text-[13.5px] font-medium text-primary hover:bg-primary-soft">
+              <Plus className="size-4" /> Nouveau treillis calculé
+            </button>
+            <p className="text-[12px] leading-snug text-muted-foreground">
+              Treillis (Pratt, Howe, Warren, ferme, potence, triangle ou vos propres nœuds et barres) : efforts dans les barres en traction ou compression, réactions, méthode des nœuds rédigée pas à pas.
+            </p>
             <div>
-              <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Cas types</h3>
+              <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Poutres — cas types</h3>
               <div className="space-y-1">
                 {BEAM_PRESETS.map((p) => (
                   <MenuItem key={p.id} onClick={() => onBeam(p.id)}>
@@ -323,7 +331,7 @@ export function SelectionBar(props: {
   const y = above ? props.top - 54 : Math.min(props.bottom + 10, props.vpH - 52);
   const left = Math.min(Math.max(8, props.x - W / 2), Math.max(8, props.vpW - W - 8));
   const hasSymbol = props.elements.some((e) => e.type === "symbol");
-  const colorable = props.elements.some((e) => e.type !== "image" && e.type !== "beam" && e.type !== "cut");
+  const colorable = props.elements.some((e) => e.type !== "image" && e.type !== "beam" && e.type !== "cut" && e.type !== "truss");
   const single = props.elements.length === 1 ? props.elements[0] : null;
   return (
     <div
@@ -332,7 +340,7 @@ export function SelectionBar(props: {
       style={{ left, top: Math.max(6, y) }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {props.onEdit && single && (single.type === "text" || single.type === "math" || single.type === "beam") && (
+      {props.onEdit && single && (single.type === "text" || single.type === "math" || single.type === "beam" || single.type === "truss") && (
         <ToolButton label="Modifier" onClick={props.onEdit} className="size-9">
           <Pencil />
         </ToolButton>
@@ -509,6 +517,26 @@ export function PropsPanel({ el, onChange, onClose, onEdit }: { el: NoteElement;
         <Range label="Largeur" value={el.w} min={200} max={760} onChange={(v) => set({ w: v })} />
         <button type="button" onClick={onEdit} className="h-8 w-full cursor-pointer rounded-lg bg-primary text-[13px] font-medium text-primary-foreground hover:bg-primary/90">
           Modifier appuis et charges
+        </button>
+      </>
+    );
+  } else if (el.type === "truss") {
+    title = "Treillis calculé";
+    const toggle = (k: keyof typeof el.show, label: string) => (
+      <label key={k} className="flex items-center gap-2 text-[13px]">
+        <input type="checkbox" checked={el.show[k]} onChange={(e) => set({ show: { ...el.show, [k]: e.target.checked } })} /> {label}
+      </label>
+    );
+    body = (
+      <>
+        <div className="grid grid-cols-1 gap-1">
+          {toggle("efforts", "Efforts et couleurs")}
+          {toggle("reactions", "Réactions")}
+          {toggle("labels", "Noms des nœuds")}
+        </div>
+        <Range label="Largeur" value={el.w} min={200} max={760} onChange={(v) => set({ w: v })} />
+        <button type="button" onClick={onEdit} className="h-8 w-full cursor-pointer rounded-lg bg-primary text-[13px] font-medium text-primary-foreground hover:bg-primary/90">
+          Modifier nœuds, barres et charges
         </button>
       </>
     );

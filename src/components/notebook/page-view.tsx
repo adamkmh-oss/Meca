@@ -14,6 +14,7 @@ import { measured } from "@/lib/notebook/geometry";
 import { PAPER_COLORS, displayColor, pageSize, paperCssVars } from "@/lib/notebook/paper";
 import type { ImageEl, MathEl, NoteElement, Page, ShapeEl, StrokeEl, TextEl } from "@/lib/notebook/types";
 import { BeamBlock, CutBlock } from "./beam-blocks";
+import { TrussBlock } from "./truss-block";
 import { PaperBackground } from "./paper";
 import { SymbolArt } from "./symbol-art";
 
@@ -307,7 +308,7 @@ export const PageView = memo(function PageView({ page, editing, hidden, scale = 
   for (const e of page.elements) {
     if (hidden?.has(e.id)) continue;
     if (e.type === "stroke") (e.tool === "highlighter" ? hl : ink).push(e);
-    else if (e.type === "text" || e.type === "math" || e.type === "beam" || e.type === "cut") html.push(e);
+    else if (e.type === "text" || e.type === "math" || e.type === "beam" || e.type === "cut" || e.type === "truss") html.push(e);
     else back.push(e);
   }
   return (
@@ -330,6 +331,12 @@ export const PageView = memo(function PageView({ page, editing, hidden, scale = 
             return (
               <BlockFrame key={e.id} id={e.id} x={e.x} y={e.y} w={e.w}>
                 <BeamBlock el={e} />
+              </BlockFrame>
+            );
+          if (e.type === "truss")
+            return (
+              <BlockFrame key={e.id} id={e.id} x={e.x} y={e.y} w={e.w}>
+                <TrussBlock el={e} />
               </BlockFrame>
             );
           if (e.type === "cut")
