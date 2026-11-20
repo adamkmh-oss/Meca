@@ -303,18 +303,35 @@ export function TopBar(props: {
                 value={props.settings.finger}
                 onChange={(f) => props.onSettings({ finger: f })}
                 options={[
-                  { value: "auto", label: "Auto", title: "Jusqu'à la première utilisation d'un stylet" },
+                  { value: "auto", label: "Auto", title: "Tablette : stylet seul. Téléphone : au doigt jusqu'au premier stylet." },
                   { value: "on", label: "Oui" },
                   { value: "off", label: "Stylet seul" },
                 ]}
               />
-              <p className="mt-1 text-xs text-muted-foreground">« Stylet seul » : le doigt fait défiler et zoomer, la paume est ignorée pendant l&apos;écriture.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                « Auto » sur iPad et « Stylet seul » : seul l&apos;Apple Pencil écrit ; le doigt fait défiler et zoomer ; la paume est ignorée pendant l&apos;écriture.
+              </p>
+            </div>
+            <div>
+              <div className="mb-1 font-semibold">Bouton gomme rapide</div>
+              <Segmented
+                value={props.settings.quickSide}
+                onChange={(q) => props.onSettings({ quickSide: q })}
+                options={[
+                  { value: "left", label: "À gauche" },
+                  { value: "right", label: "À droite" },
+                  { value: "off", label: "Masqué" },
+                ]}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Bascule entre l&apos;outil en cours et la gomme, comme le double-tap de l&apos;Apple Pencil (que Safari ne transmet pas aux pages web).
+              </p>
             </div>
             <label className="flex items-start gap-2">
               <input type="checkbox" className="mt-0.5" checked={props.settings.autoShape} onChange={(e) => props.onSettings({ autoShape: e.target.checked })} />
               <span>
                 <span className="font-medium">Formes automatiques</span>
-                <span className="block text-xs text-muted-foreground">Gardez le stylet immobile en fin de trait : droite, cercle, rectangle, triangle.</span>
+                <span className="block text-xs text-muted-foreground">Gardez le stylet immobile près d&apos;une seconde en fin de trait : droite, cercle, rectangle, triangle.</span>
               </span>
             </label>
           </div>
@@ -341,6 +358,7 @@ function HelpContent() {
     ["Un doigt", "faire défiler (ou dessiner si « dessin au doigt »)"],
     ["Deux doigts", "zoomer et déplacer"],
     ["Tape à 2 / 3 doigts", "annuler / rétablir"],
+    ["Bouton rond (bas de l'écran)", "outil ⇄ gomme, à la place du double-tap du Pencil"],
     ["Stylet immobile en fin de trait", "forme parfaite"],
     ["Lasso", "entourer pour sélectionner, toucher un objet, double-toucher pour le modifier"],
     ["Ctrl + molette", "zoom ; Espace + glisser : déplacer"],
@@ -370,6 +388,21 @@ const SHAPE_ICONS: Record<DrawShape, React.ReactNode> = {
   dim: <path d="M3 8 V16 M21 8 V16 M3 12 H21 M3 12 l4 -3 M3 12 l4 3 M21 12 l-4 -3 M21 12 l-4 3" />,
 };
 
+const TOOL_ICONS: Record<Tool, React.ReactNode> = {
+  pen: <PenLine />,
+  highlighter: <Highlighter />,
+  eraser: <Eraser />,
+  lasso: <LassoSelect />,
+  shape: <Shapes />,
+  text: <Type />,
+  math: <Sigma />,
+  hand: <Hand />,
+};
+
+export function ToolIcon({ tool }: { tool: Tool }) {
+  return <>{TOOL_ICONS[tool]}</>;
+}
+
 export function EditorToolbar({
   tool,
   onTool,
@@ -385,16 +418,7 @@ export function EditorToolbar({
   onBeam: () => void;
   onMechanics: () => void;
 }) {
-  const tools: { t: Tool; icon: React.ReactNode }[] = [
-    { t: "pen", icon: <PenLine /> },
-    { t: "highlighter", icon: <Highlighter /> },
-    { t: "eraser", icon: <Eraser /> },
-    { t: "lasso", icon: <LassoSelect /> },
-    { t: "shape", icon: <Shapes /> },
-    { t: "text", icon: <Type /> },
-    { t: "math", icon: <Sigma /> },
-    { t: "hand", icon: <Hand /> },
-  ];
+  const tools = (Object.keys(TOOL_ICONS) as Tool[]).map((t) => ({ t, icon: TOOL_ICONS[t] }));
   const custom = (key: "penColor" | "hlColor" | "shapeColor" | "textColor") => (
     <label className="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full" title="Autre couleur">
       <span className="size-6 rounded-full border border-black/10" style={{ background: "conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)" }} />

@@ -327,6 +327,7 @@ export function SelectionBar(props: {
   const single = props.elements.length === 1 ? props.elements[0] : null;
   return (
     <div
+      data-nb-ui
       className="absolute z-20 flex max-w-[calc(100%-16px)] items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-xl [scrollbar-width:none]"
       style={{ left, top: Math.max(6, y) }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -541,7 +542,7 @@ export function PropsPanel({ el, onChange, onClose, onEdit }: { el: NoteElement;
     );
   } else return null;
   return (
-    <div className="absolute bottom-12 right-3 z-20 w-64 space-y-2.5 rounded-xl border border-border bg-card p-3 shadow-xl" onPointerDown={(e) => e.stopPropagation()}>
+    <div data-nb-ui className="absolute bottom-12 right-3 z-20 w-64 space-y-2.5 rounded-xl border border-border bg-card p-3 shadow-xl" onPointerDown={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between">
         <span className="text-[13.5px] font-semibold">{title}</span>
         <button type="button" onClick={onClose} className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md hover:bg-muted" aria-label="Fermer">

@@ -290,8 +290,14 @@ function TextEditor({ el, editing, dark }: { el: TextEl; editing: TextEditing; d
   );
 }
 
-export const PageView = memo(function PageView({ page, editing, hidden }: { page: Page; editing?: TextEditing | null; hidden?: ReadonlySet<string> }) {
+/**
+ * `scale` : facteur d'affichage. Les calques SVG sont dessinés à la taille
+ * affichée (vectoriel net à tout zoom) ; le calque HTML est mis à l'échelle.
+ */
+export const PageView = memo(function PageView({ page, editing, hidden, scale = 1 }: { page: Page; editing?: TextEditing | null; hidden?: ReadonlySet<string>; scale?: number }) {
   const { w, h } = pageSize(page.orientation);
+  const W = w * scale;
+  const H = h * scale;
   const dark = PAPER_COLORS[page.color].theme.dark;
   const vars = paperCssVars(page.color) as CSSProperties;
   const back: NoteElement[] = [];
@@ -305,8 +311,8 @@ export const PageView = memo(function PageView({ page, editing, hidden }: { page
     else back.push(e);
   }
   return (
-    <div className="nb-page relative overflow-hidden" style={{ width: w, height: h, ...vars, background: PAPER_COLORS[page.color].theme.bg }} data-page={page.id}>
-      <svg className="absolute inset-0 overflow-visible" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+    <div className="nb-page relative overflow-hidden" style={{ width: W, height: H, ...vars, background: PAPER_COLORS[page.color].theme.bg }} data-page={page.id}>
+      <svg className="absolute inset-0" width={W} height={H} viewBox={`0 0 ${w} ${h}`}>
         <PaperBackground kind={page.paper} color={page.color} w={w} h={h} patternId={`pt-${page.id}`} background={page.background} />
         {back.map((e) => (e.type === "image" ? <ImageView key={e.id} el={e} /> : null))}
         <g>
@@ -316,7 +322,7 @@ export const PageView = memo(function PageView({ page, editing, hidden }: { page
         </g>
         {back.map((e) => (e.type === "shape" ? <ShapeView key={e.id} el={e} dark={dark} /> : e.type === "symbol" ? <SymbolArt key={e.id} el={e} dark={dark} /> : null))}
       </svg>
-      <div className="absolute inset-0" style={{ pointerEvents: "none" }}>
+      <div className="absolute left-0 top-0 origin-top-left" style={{ width: w, height: h, transform: scale === 1 ? undefined : `scale(${scale})`, pointerEvents: "none" }}>
         {html.map((e) => {
           if (e.type === "text") return editing?.id === e.id ? <TextEditor key={e.id} el={e} editing={editing} dark={dark} /> : <TextView key={e.id} el={e} dark={dark} />;
           if (e.type === "math") return <MathView key={e.id} el={e} dark={dark} />;
@@ -335,7 +341,7 @@ export const PageView = memo(function PageView({ page, editing, hidden }: { page
           return null;
         })}
       </div>
-      <svg className="pointer-events-none absolute inset-0 overflow-visible" width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <svg className="pointer-events-none absolute inset-0" width={W} height={H} viewBox={`0 0 ${w} ${h}`}>
         {ink.map((e) => (
           <StrokeView key={e.id} el={e} dark={dark} />
         ))}

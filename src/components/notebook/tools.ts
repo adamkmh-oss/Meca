@@ -24,8 +24,10 @@ export interface ToolSettings {
   textColor: string;
   /** Maintenir le stylet immobile en fin de trait → forme parfaite. */
   autoShape: boolean;
-  /** Dessiner au doigt : auto (jusqu'au premier stylet détecté), oui, non. */
+  /** Dessiner au doigt : auto (jamais sur tablette ; sur téléphone jusqu'au premier stylet), oui, non. */
   finger: "auto" | "on" | "off";
+  /** Bouton flottant outil ⇄ gomme : à gauche, à droite ou masqué. */
+  quickSide: "left" | "right" | "off";
 }
 
 export const DEFAULT_SETTINGS: ToolSettings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   textColor: PEN_COLORS[0],
   autoShape: true,
   finger: "auto",
+  quickSide: "left",
 };
 
 export const TOOL_LABEL: Record<Tool, string> = {

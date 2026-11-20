@@ -42,6 +42,8 @@ import { MechanicsDrawer, PagesSidebar, PropsPanel, SelectionBar } from "./panel
 import { BeamDialog, MathDialog, type BeamInsertOptions } from "./dialogs";
 import { PrintArea, printNotebook, printableHtml } from "./print";
 import { imageToDataUrl, pdfToImages, pickFiles, safeName, saveFile } from "./files";
+import { Eraser } from "lucide-react";
+import { ToolIcon } from "./toolbar";
 
 const GAP = 28;
 const MIN_Z = 0.2;
@@ -112,6 +114,19 @@ interface Editing {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
+/** Écran tactile de tablette (iPad…) : le doigt sert à faire défiler, pas à écrire. */
+function isTablet(): boolean {
+  if (typeof navigator === "undefined" || typeof screen === "undefined") return false;
+  return navigator.maxTouchPoints > 1 && Math.min(screen.width, screen.height) >= 600;
+}
+
+/** Longueur du tracé (points x, y, p). */
+function strokeLength(pts: number[]): number {
+  let l = 0;
+  for (let i = 3; i + 1 < pts.length; i += 3) l += Math.hypot(pts[i] - pts[i - 3], pts[i + 1] - pts[i - 2]);
+  return l;
+}
+
 export function Editor({ initial, store, onClose, sync }: { initial: Notebook; store: NotebookStore; onClose: () => void; sync?: SyncStatus | null }) {
   const nbh = useNotebook(initial, store);
   const { nb, commit, transient, endGesture, pagesRef } = nbh;
@@ -143,16 +158,42 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
   const [view, setViewState] = useState<View>({ x: 0, y: 16, z: 1 });
   const viewRef = useRef(view);
   const raf = useRef<number | null>(null);
+  /*
+   * Netteté : les pages sont dessinées à la taille réelle du zoom « figé » (zc),
+   * en vectoriel. Pendant un pincement ou un zoom à la molette, une échelle CSS
+   * temporaire (z / zc) suit le geste ; à l'arrêt, le zoom est figé et tout est
+   * redessiné net (pas d'agrandissement d'une image floue).
+   */
+  const [zc, setZc] = useState(1);
+  const zcRef = useRef(1);
+  const zoomCommit = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setView = useCallback((v: View) => {
     viewRef.current = v;
-    if (worldRef.current) worldRef.current.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.z})`;
+    if (worldRef.current) worldRef.current.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.z / zcRef.current})`;
     if (raf.current === null) {
       raf.current = requestAnimationFrame(() => {
         raf.current = null;
         setViewState(viewRef.current);
       });
     }
+    if (Math.abs(v.z - zcRef.current) > 1e-6) {
+      if (zoomCommit.current) clearTimeout(zoomCommit.current);
+      zoomCommit.current = setTimeout(() => {
+        zoomCommit.current = null;
+        const cur = viewRef.current;
+        if (Math.abs(cur.z - zcRef.current) < 1e-6) return;
+        zcRef.current = cur.z;
+        setZc(cur.z);
+        setViewState(cur);
+      }, 160);
+    }
   }, []);
+  useEffect(
+    () => () => {
+      if (zoomCommit.current) clearTimeout(zoomCommit.current);
+    },
+    [],
+  );
 
   const fitWidth = useCallback(
     (keepPage = true) => {
@@ -271,10 +312,17 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
   const [measureTick, setMeasureTick] = useState(0);
   useEffect(() => onMeasure(() => setMeasureTick((t) => t + 1)), []);
 
+  const prevTool = useRef<Tool>("pen");
   const setTool = useCallback((t: Tool) => {
+    if (t !== toolRef.current) prevTool.current = toolRef.current;
     setToolState(t);
     if (t !== "lasso") setSel(null);
   }, []);
+  /** Équivalent du double-tap de l'Apple Pencil : outil courant ⇄ gomme. */
+  const toggleEraser = useCallback(() => {
+    if (toolRef.current === "eraser") setTool(prevTool.current === "eraser" ? "pen" : prevTool.current);
+    else setTool("eraser");
+  }, [setTool]);
 
   const selectedElements = useMemo(() => {
     if (!sel) return [];
@@ -722,7 +770,9 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
 
   const fingerDraws = () => {
     const f = settingsRef.current.finger;
-    return f === "on" || (f === "auto" && !penSeen.current);
+    // Auto : sur tablette (iPad), le doigt fait toujours défiler et zoomer ; sur
+    // téléphone, il dessine tant qu'aucun stylet n'a été utilisé.
+    return f === "on" || (f === "auto" && !penSeen.current && !isTablet());
   };
 
   const drawLive = useCallback(() => {
@@ -867,7 +917,8 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       if (gesture.current) return;
 
       const isTouch = type === "touch";
-      const t = toolRef.current;
+      // bouton « gomme » d'un stylet qui en possède un (bit 32 des boutons)
+      const t: Tool = type === "pen" && (e.buttons & 32) !== 0 ? "eraser" : toolRef.current;
       const panRequested = (isTouch && !fingerDraws()) || (type === "mouse" && (e.button === 1 || spaceDown.current)) || t === "hand";
       if (type === "mouse" && e.button === 2) return;
       try {
@@ -1079,7 +1130,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             g.holdAt = [x, y];
             if (g.holdTimer) clearTimeout(g.holdTimer);
             g.holdTimer = null;
-            if (settingsRef.current.autoShape) {
+            if (settingsRef.current.autoShape && strokeLength(g.pts) > 45) {
               g.holdTimer = setTimeout(() => {
                 const cur = gesture.current;
                 if (cur !== g || g.snapped) return;
@@ -1088,7 +1139,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
                 if (g.tool === "highlighter" && rec.shape !== "line") return;
                 g.snapped = rec;
                 scheduleLive();
-              }, 550);
+              }, 800);
             }
           }
         }
@@ -1185,7 +1236,8 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       }
       if (g.kind === "draw") {
         if (g.holdTimer) clearTimeout(g.holdTimer);
-        if (!cancelled) {
+        // Interruption par le système (geste, Scribble) : le trait déjà tracé est conservé.
+        if (!cancelled || (!g.touch && g.pts.length >= 6)) {
           let el: NoteElement | null = null;
           if (g.snapped) {
             if (g.tool === "highlighter") el = { id: uid("e"), type: "stroke", tool: "highlighter", color: g.color, size: g.size, pressure: false, pts: [g.snapped.pts[0], g.snapped.pts[1], 0.5, g.snapped.pts[2], g.snapped.pts[3], 0.5] };
@@ -1309,12 +1361,23 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       }
     };
     el.addEventListener("wheel", onWheel, { passive: false });
+    // iPad : sans cela, Safari peut lancer un défilement ou Scribble au milieu d'un trait
+    // (événement « pointercancel ») et le trait est coupé.
+    const onTouch = (e: TouchEvent) => {
+      const target = e.target as Element | null;
+      if (target?.closest?.("[data-nb-ui], input, textarea, select, button, a, label")) return;
+      if (e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchstart", onTouch, { passive: false });
+    el.addEventListener("touchmove", onTouch, { passive: false });
     // Safari : gestes de pincement au trackpad
     const prevent = (e: Event) => e.preventDefault();
     el.addEventListener("gesturestart", prevent);
     el.addEventListener("gesturechange", prevent);
     return () => {
       el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouch);
+      el.removeEventListener("touchmove", onTouch);
       el.removeEventListener("gesturestart", prevent);
       el.removeEventListener("gesturechange", prevent);
     };
@@ -1531,11 +1594,11 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             if (files.length) void insertFiles(files);
           }}
         >
-          <div ref={worldRef} className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})` }}>
+          <div ref={worldRef} className="absolute left-0 top-0 origin-top-left" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z / zc})` }}>
             {layout.boxes.map((b, i) => (
-              <div key={b.id} className="nb-sheet absolute" style={{ left: b.x, top: b.y, width: b.w, height: b.h }}>
+              <div key={b.id} className="nb-sheet absolute" style={{ left: b.x * zc, top: b.y * zc, width: b.w * zc, height: b.h * zc }}>
                 {visible.has(b.id) ? (
-                  <PageView page={pages[i]} editing={editing && editing.pageId === b.id ? textEditing : null} />
+                  <PageView page={pages[i]} scale={zc} editing={editing && editing.pageId === b.id ? textEditing : null} />
                 ) : (
                   <div className="h-full w-full" style={{ background: PAPER_COLORS[pages[i].color].theme.bg }} />
                 )}
@@ -1543,14 +1606,26 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             ))}
             {/* calque d'interaction : trait en cours, lasso, gomme */}
             {overlayBox && (
-              <svg className="pointer-events-none absolute overflow-visible" style={{ left: overlayBox.x, top: overlayBox.y }} width={overlayBox.w} height={overlayBox.h}>
+              <svg
+                className="pointer-events-none absolute overflow-visible"
+                style={{ left: overlayBox.x * zc, top: overlayBox.y * zc }}
+                width={overlayBox.w * zc}
+                height={overlayBox.h * zc}
+                viewBox={`0 0 ${overlayBox.w} ${overlayBox.h}`}
+              >
                 <path ref={livePath} strokeLinecap="round" strokeLinejoin="round" />
                 {tool === "eraser" && <circle ref={cursorRef} r={settings.eraserSize / 2} fill="rgba(120,130,150,0.12)" stroke="#6b7280" strokeWidth={1 / view.z} style={{ display: "none" }} />}
               </svg>
             )}
             {/* sélection */}
             {selBox && selPageBox && (
-              <svg className="pointer-events-none absolute overflow-visible" style={{ left: selPageBox.x, top: selPageBox.y }} width={selPageBox.w} height={selPageBox.h}>
+              <svg
+                className="pointer-events-none absolute overflow-visible"
+                style={{ left: selPageBox.x * zc, top: selPageBox.y * zc }}
+                width={selPageBox.w * zc}
+                height={selPageBox.h * zc}
+                viewBox={`0 0 ${selPageBox.w} ${selPageBox.h}`}
+              >
                 {selectedElements.length > 1 &&
                   selectedElements.map((el) => {
                     const r = elementBounds(el);
@@ -1604,6 +1679,23 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             />
           )}
 
+          {/* bascule rapide outil ⇄ gomme (le double-tap du Pencil n'est pas transmis aux pages web) */}
+          {settings.quickSide !== "off" && (
+            <button
+              type="button"
+              data-nb-ui
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={toggleEraser}
+              aria-label={tool === "eraser" ? "Revenir à l'outil précédent" : "Passer à la gomme"}
+              title={tool === "eraser" ? "Revenir à l'outil précédent" : "Gomme (touchez à nouveau pour revenir)"}
+              className={`absolute z-20 inline-flex size-14 cursor-pointer items-center justify-center rounded-full shadow-lg ring-1 ring-black/10 transition active:scale-95 [&_svg]:size-6 ${
+                settings.quickSide === "right" ? "right-3" : "left-3"
+              } ${tool === "eraser" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"}`}
+              style={{ bottom: 56 }}
+            >
+              {tool === "eraser" ? <ToolIcon tool={prevTool.current === "eraser" ? "pen" : prevTool.current} /> : <Eraser />}
+            </button>
+          )}
           {/* indicateur de page et zoom */}
           <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--nb-chip)] px-3 py-1 text-xs font-medium text-white shadow">
             Page {currentPageIndex + 1} / {pages.length} · {Math.round(view.z * 100)} %
