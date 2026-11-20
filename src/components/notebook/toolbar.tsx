@@ -323,8 +323,21 @@ export function TopBar(props: {
                   { value: "off", label: "Masqué" },
                 ]}
               />
+              <p className="mt-1 text-xs text-muted-foreground">Bascule entre l&apos;outil en cours et la gomme.</p>
+            </div>
+            <div>
+              <div className="mb-1 font-semibold">Double-tape au doigt</div>
+              <Segmented
+                value={props.settings.fingerDoubleTap}
+                onChange={(d) => props.onSettings({ fingerDoubleTap: d })}
+                options={[
+                  { value: "eraser", label: "Gomme", title: "Outil en cours ⇄ gomme" },
+                  { value: "previous", label: "Outil précédent", title: "Outil en cours ⇄ dernier outil utilisé" },
+                  { value: "off", label: "Non" },
+                ]}
+              />
               <p className="mt-1 text-xs text-muted-foreground">
-                Bascule entre l&apos;outil en cours et la gomme, comme le double-tap de l&apos;Apple Pencil (que Safari ne transmet pas aux pages web).
+                Tapez deux fois la page avec un doigt pour changer d&apos;outil. Safari ne transmet pas le double-tap de l&apos;Apple Pencil aux pages web : ce geste le remplace.
               </p>
             </div>
             <label className="flex items-start gap-2">
@@ -358,7 +371,8 @@ function HelpContent() {
     ["Un doigt", "faire défiler (ou dessiner si « dessin au doigt »)"],
     ["Deux doigts", "zoomer et déplacer"],
     ["Tape à 2 / 3 doigts", "annuler / rétablir"],
-    ["Bouton rond (bas de l'écran)", "outil ⇄ gomme, à la place du double-tap du Pencil"],
+    ["Double-tape d'un doigt", "outil ⇄ gomme (ou outil précédent, dans Réglages), à la place du double-tap du Pencil"],
+    ["Bouton rond (bas de l'écran)", "outil ⇄ gomme"],
     ["Stylet immobile en fin de trait", "forme parfaite"],
     ["Lasso", "entourer pour sélectionner, toucher un objet, double-toucher pour le modifier"],
     ["Ctrl + molette", "zoom ; Espace + glisser : déplacer"],

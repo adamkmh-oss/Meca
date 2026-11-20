@@ -42,7 +42,7 @@ export function demoNotebook(): Notebook {
       size: 15,
       color: INK,
       text:
-        "- **Stylo** sensible à la pression, **surligneur**, **gomme** (trait entier ou précise), **lasso** pour déplacer, agrandir, copier\n- Gardez le stylet immobile en fin de trait : la droite ou le cercle devient parfait\n- **Bibliothèque mécanique** : appuis, charges, réactions, coupures et torseurs, sections, axes de diagrammes, PFS et formulaire\n- **Poutre calculée** : saisissez appuis et charges, le cahier écrit le PFS, les coupures et trace N, T, M\n- Texte : Markdown et formules entre deux signes `$`, par exemple $\\Sigma F_y = 0$\n- Deux doigts pour zoomer, tape à deux doigts pour annuler",
+        "- **Stylo** à bille (ou plume), **surligneur**, **gomme** (trait entier ou précise), **lasso** pour déplacer, agrandir, copier\n- Gardez le stylet immobile en fin de trait : la droite ou le cercle devient parfait\n- **Bibliothèque mécanique** : appuis, charges, réactions, coupures et torseurs, sections, axes de diagrammes, PFS et formulaire\n- **Poutre calculée** : saisissez appuis et charges, le cahier écrit le PFS, les coupures et trace N, T, M\n- Texte : Markdown et formules entre deux signes `$`, par exemple $\\Sigma F_y = 0$\n- Deux doigts pour zoomer, tape à deux doigts pour annuler ; **double-tape d'un doigt** : stylo ⇄ gomme",
     },
     sym("poutre-2-appuis", 120, 430, { len: 300 }),
     sym("charge-uniforme", 120, 427, { color: LOAD, len: 300, h: 26, label: "q" }),

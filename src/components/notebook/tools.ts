@@ -30,6 +30,8 @@ export interface ToolSettings {
   finger: "auto" | "on" | "off";
   /** Bouton flottant outil ⇄ gomme : à gauche, à droite ou masqué. */
   quickSide: "left" | "right" | "off";
+  /** Double-tape d'un doigt sur la page (remplace le double-tap du Pencil, que Safari ne transmet pas). */
+  fingerDoubleTap: "eraser" | "previous" | "off";
 }
 
 export const DEFAULT_SETTINGS: ToolSettings = {
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   autoShape: true,
   finger: "auto",
   quickSide: "left",
+  fingerDoubleTap: "eraser",
 };
 
 export const TOOL_LABEL: Record<Tool, string> = {

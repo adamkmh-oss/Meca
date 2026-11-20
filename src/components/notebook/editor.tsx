@@ -37,7 +37,7 @@ import { TrussDialog, type TrussInsertOptions } from "./truss-dialog";
 import { litBounds, litCutsMarkdown, litPfsMarkdown, parseBeam } from "@/lib/notebook/literal-beam";
 import { onMeasure, PageView, type TextEditing } from "./page-view";
 import { mapPage, useNotebook } from "./use-notebook";
-import { DEFAULT_SETTINGS, type Tool, type ToolSettings } from "./tools";
+import { DEFAULT_SETTINGS, TOOL_LABEL, type Tool, type ToolSettings } from "./tools";
 import { EditorToolbar, TopBar } from "./toolbar";
 import { MechanicsDrawer, PagesSidebar, PropsPanel, SelectionBar } from "./panels";
 import { MathDialog } from "./dialogs";
@@ -99,7 +99,7 @@ type Gesture =
   | { kind: "move"; pid: number; pageId: string; before: Page[]; start: [number, number]; orig: Map<string, NoteElement>; moved: boolean; touch: boolean }
   | { kind: "scale"; pid: number; pageId: string; before: Page[]; box: Rect; orig: Map<string, NoteElement>; touch: boolean }
   | { kind: "shape"; pid: number; pageId: string; start: [number, number]; end: [number, number]; touch: boolean }
-  | { kind: "pan"; pid: number; start: [number, number]; view0: View }
+  | { kind: "pan"; pid: number; start: [number, number]; view0: View; t0?: number }
   | { kind: "pinch"; a: number; b: number; d0: number; c0: [number, number]; world0: [number, number]; z0: number; t0: number; moved: boolean; maxTouches: number };
 
 interface Selection {
@@ -393,10 +393,10 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const notify = useCallback((msg: string) => {
+  const notify = useCallback((msg: string, ms = 2600) => {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2600);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
   }, []);
 
   /* ------------------------- insertion d'objets ------------------------- */
@@ -809,6 +809,9 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
   const penDown = useRef(false);
   const spaceDown = useRef(false);
   const lastTap = useRef<{ t: number; id: string | null }>({ t: 0, id: null });
+  /** Dernière tape d'un doigt (double-tape = changer d'outil) et dernier lever du stylet (anti-paume). */
+  const fingerTap = useRef<{ t: number; x: number; y: number }>({ t: 0, x: 0, y: 0 });
+  const lastPenUp = useRef(0);
   const [overlayPage, setOverlayPage] = useState<string | null>(null);
   const livePath = useRef<SVGPathElement>(null);
   const cursorRef = useRef<SVGCircleElement>(null);
@@ -910,6 +913,31 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
     return null;
   }, [pagesRef]);
 
+  /**
+   * Double-tape d'un doigt : bascule d'outil, comme le double-tap de l'Apple Pencil
+   * (Safari ne transmet pas ce geste du crayon aux pages web). Deux tapes brèves au
+   * même endroit ; ignorées juste après un trait (paume qui se pose ou se relève).
+   */
+  const fingerTapped = useCallback((g: { t0?: number; start: [number, number] }, x: number, y: number) => {
+    const now = performance.now();
+    const mode = settingsRef.current.fingerDoubleTap;
+    const tap = now - (g.t0 ?? 0) < 260 && Math.hypot(x - g.start[0], y - g.start[1]) < 14;
+    if (mode === "off" || !tap || penDown.current || now - lastPenUp.current < 450 || pointers.current.size > 0) {
+      fingerTap.current = { t: 0, x: 0, y: 0 };
+      return;
+    }
+    const prev = fingerTap.current;
+    if (now - prev.t < 380 && Math.hypot(x - prev.x, y - prev.y) < 60) {
+      fingerTap.current = { t: 0, x: 0, y: 0 };
+      const cur = toolRef.current;
+      let next: Tool;
+      if (mode === "eraser") next = cur === "eraser" ? (prevTool.current === "eraser" ? "pen" : prevTool.current) : "eraser";
+      else next = prevTool.current === cur ? (cur === "pen" ? "eraser" : "pen") : prevTool.current;
+      setTool(next);
+      notify(TOOL_LABEL[next], 900);
+    } else fingerTap.current = { t: now, x, y };
+  }, [setTool, notify]);
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const type = e.pointerType;
@@ -972,7 +1000,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
         /* pointeur déjà relâché */
       }
       if (panRequested) {
-        gesture.current = { kind: "pan", pid: e.pointerId, start: [e.clientX, e.clientY], view0: viewRef.current };
+        gesture.current = { kind: "pan", pid: e.pointerId, start: [e.clientX, e.clientY], view0: viewRef.current, t0: isTouch ? performance.now() : undefined };
         return;
       }
       e.preventDefault();
@@ -1256,7 +1284,10 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
     (e: React.PointerEvent<HTMLDivElement>) => {
       const info = pointers.current.get(e.pointerId);
       pointers.current.delete(e.pointerId);
-      if (e.pointerType === "pen") penDown.current = false;
+      if (e.pointerType === "pen") {
+        penDown.current = false;
+        lastPenUp.current = performance.now();
+      }
       const g = gesture.current;
       if (!g) return;
       if (g.kind === "pinch") {
@@ -1278,6 +1309,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       void info;
       if (g.kind === "pan") {
         gesture.current = null;
+        if (g.t0 !== undefined && e.type === "pointerup") fingerTapped(g, e.clientX, e.clientY);
         return;
       }
       if (g.kind === "draw") {
@@ -1385,7 +1417,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
         else endGesture(g.before);
       }
     },
-    [commit, endGesture, endLive, transient, nbh, pagesRef, hitTop, editElement],
+    [commit, endGesture, endLive, transient, nbh, pagesRef, hitTop, editElement, fingerTapped],
   );
 
   /* --------------------------- molette, clavier --------------------------- */
