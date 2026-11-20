@@ -139,7 +139,7 @@ const page = z.object({
   background: str.refine((s) => s.startsWith("data:image/"), "image intégrée attendue").optional(),
 });
 
-const notebook = z.object({
+export const notebookSchema = z.object({
   version: z.literal(1),
   id: z.string().min(1).max(64),
   title: z.string().max(200),
@@ -153,7 +153,7 @@ export const exportFile = z.object({
   app: z.literal("cahier-meca"),
   version: z.literal(1),
   exportedAt: num,
-  notebooks: z.array(notebook).min(1).max(500),
+  notebooks: z.array(notebookSchema).min(1).max(500),
 });
 
 export type ExportFile = z.infer<typeof exportFile>;

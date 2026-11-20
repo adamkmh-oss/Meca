@@ -228,6 +228,7 @@ export function BeamDialog({ initial, presetId, onSave, onCancel }: { initial?: 
   const [pfs, setPfs] = useState(!initial);
   const [cutsMode, setCutsMode] = useState<"aucune" | "equations" | "figures">(initial ? "aucune" : "equations");
   const [adv, setAdv] = useState(false);
+  const [preset, setPreset] = useState(presetId ?? "");
 
   const an = useMemo(() => analyzeBeam(m), [m]);
   const reacts = useMemo(() => namedReactions(an), [an]);
@@ -269,8 +270,9 @@ export function BeamDialog({ initial, presetId, onSave, onCancel }: { initial?: 
           {!initial && (
             <Select
               label="Cas type"
-              value={presetId ?? ""}
+              value={preset}
               onChange={(v) => {
+                setPreset(v);
                 const p = BEAM_PRESETS.find((b) => b.id === v);
                 if (p) setM({ ...STEEL, ...structuredClone(p.draft) });
               }}

@@ -1,10 +1,11 @@
 "use client";
 /** Bibliothèque : liste des cahiers, création, recherche, import / export. */
 import { useMemo, useState } from "react";
-import { ArrowLeft, Copy, Download, FileDown, MoreHorizontal, NotebookPen, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Cloud, CloudOff, Copy, Download, FileDown, MoreHorizontal, NotebookPen, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { makeExport, newNotebook, parseExport, uid } from "@/lib/notebook/model";
 import { COVERS } from "@/lib/notebook/paper";
 import type { NotebookStore } from "@/lib/notebook/storage";
+import type { SyncStatus } from "@/lib/notebook/cloud";
 import type { Notebook, NotebookMeta, PaperColor, PaperKind } from "@/lib/notebook/types";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,9 @@ export function Library({
   onOpen,
   onRefresh,
   homeHref,
+  sync,
 }: {
+  sync?: SyncStatus | null;
   store: NotebookStore;
   metas: NotebookMeta[];
   onOpen: (id: string) => void;
@@ -47,6 +50,8 @@ export function Library({
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<NotebookMeta | null>(null);
+  const [deleting, setDeleting] = useState<NotebookMeta | null>(null);
   const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const list = useMemo(() => (q ? metas.filter((m) => norm(m.searchText).includes(norm(q))) : metas), [metas, q]);
 
@@ -101,6 +106,7 @@ export function Library({
           </div>
         </header>
 
+        {sync && sync !== "local" && <SyncBanner status={sync} />}
         {!store.persistent && (
           <div className="mb-4 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-[13.5px] text-warning">
             Ce navigateur ne permet pas d&apos;enregistrer les cahiers sur l&apos;appareil (navigation privée ?). Pensez à les sauvegarder en fichier avant de fermer la page.
@@ -154,13 +160,9 @@ export function Library({
                       <>
                         <MenuItem
                           icon={<Pencil />}
-                          onClick={async () => {
+                          onClick={() => {
                             close();
-                            const t = prompt("Nouveau titre", m.title);
-                            if (t === null) return;
-                            const nb = await store.load(m.id);
-                            if (nb) await store.save({ ...nb, title: t.trim() || "Sans titre", updatedAt: Date.now() });
-                            await onRefresh();
+                            setRenaming(m);
                           }}
                         >
                           Renommer
@@ -189,11 +191,9 @@ export function Library({
                         <MenuItem
                           icon={<Trash2 />}
                           danger
-                          onClick={async () => {
+                          onClick={() => {
                             close();
-                            if (!confirm(`Supprimer définitivement « ${m.title} » ?`)) return;
-                            await store.remove(m.id);
-                            await onRefresh();
+                            setDeleting(m);
                           }}
                         >
                           Supprimer
@@ -207,9 +207,52 @@ export function Library({
           </div>
         )}
         <p className="mt-10 text-center text-xs text-muted-foreground">
-          Les cahiers sont enregistrés dans ce navigateur, sur cet appareil. Utilisez « Tout sauvegarder » pour en garder une copie ou les transférer.
+          {sync && sync !== "local" && sync !== "readonly"
+            ? "Copie de travail sur cet appareil, synchronisée avec votre espace privé claude.ai. « Tout sauvegarder » en garde en plus une copie en fichier."
+            : "Les cahiers sont enregistrés dans ce navigateur, sur cet appareil. Utilisez « Tout sauvegarder » pour en garder une copie ou les transférer."}
         </p>
       </div>
+      {renaming && (
+        <RenameDialog
+          title={renaming.title}
+          onCancel={() => setRenaming(null)}
+          onSave={async (t) => {
+            const id = renaming.id;
+            setRenaming(null);
+            const nb = await store.load(id);
+            if (nb) await store.save({ ...nb, title: t.trim() || "Sans titre", updatedAt: Date.now() });
+            await onRefresh();
+          }}
+        />
+      )}
+      {deleting && (
+        <Modal
+          title="Supprimer le cahier"
+          onClose={() => setDeleting(null)}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setDeleting(null)}>
+                Annuler
+              </Button>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  const id = deleting.id;
+                  setDeleting(null);
+                  await store.remove(id);
+                  await onRefresh();
+                }}
+              >
+                <Trash2 /> Supprimer
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm">
+            « {deleting.title} » ({deleting.pageCount} page{deleting.pageCount > 1 ? "s" : ""}) sera supprimé définitivement, sur tous vos appareils. Pour en garder une copie, sauvegardez-le d&apos;abord en fichier.
+          </p>
+        </Modal>
+      )}
       {creating && (
         <NewNotebookDialog
           onCancel={() => setCreating(false)}
@@ -281,6 +324,61 @@ function NewNotebookDialog({ onCancel, onCreate }: { onCancel: () => void; onCre
           </div>
         </div>
       </div>
+    </Modal>
+  );
+}
+
+const SYNC_TEXT: Record<Exclude<SyncStatus, "local">, { text: string; tone: "ok" | "info" | "warn" }> = {
+  connecting: { text: "Connexion à votre espace claude.ai…", tone: "info" },
+  syncing: { text: "Synchronisation avec votre compte claude.ai…", tone: "info" },
+  ok: { text: "Synchronisé avec votre compte claude.ai : vos cahiers vous suivent sur tous vos appareils. Cet espace est privé, personne d'autre ne peut le lire.", tone: "ok" },
+  offline: { text: "Votre compte claude.ai ne répond pas pour l'instant : les cahiers restent enregistrés sur cet appareil et seront synchronisés plus tard.", tone: "warn" },
+  readonly: { text: "Votre accès à cette page ne permet pas la synchronisation : les cahiers restent sur cet appareil. Pensez à les sauvegarder en fichier.", tone: "warn" },
+  quota: { text: "Espace de synchronisation plein : supprimez d'anciens cahiers ou des PDF importés. Les modifications restent enregistrées sur cet appareil.", tone: "warn" },
+};
+
+function SyncBanner({ status }: { status: Exclude<SyncStatus, "local"> }) {
+  const s = SYNC_TEXT[status];
+  return (
+    <div
+      className={cn(
+        "mb-4 flex items-start gap-2 rounded-xl border px-4 py-2.5 text-[13px]",
+        s.tone === "ok" && "border-success/30 bg-success-soft text-success",
+        s.tone === "info" && "border-border bg-card text-muted-foreground",
+        s.tone === "warn" && "border-warning/40 bg-warning-soft text-warning",
+      )}
+      role="status"
+    >
+      {s.tone === "warn" ? <CloudOff className="mt-0.5 size-4 shrink-0" /> : <Cloud className="mt-0.5 size-4 shrink-0" />}
+      <span>{s.text}</span>
+    </div>
+  );
+}
+
+function RenameDialog({ title, onSave, onCancel }: { title: string; onSave: (t: string) => void; onCancel: () => void }) {
+  const [t, setT] = useState(title);
+  return (
+    <Modal
+      title="Renommer le cahier"
+      onClose={onCancel}
+      footer={
+        <>
+          <Button variant="outline" onClick={onCancel}>
+            Annuler
+          </Button>
+          <Button onClick={() => onSave(t)}>Renommer</Button>
+        </>
+      }
+    >
+      <input
+        id="nb-rename"
+        autoFocus
+        value={t}
+        onChange={(e) => setT(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onSave(t)}
+        aria-label="Titre du cahier"
+        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+      />
     </Modal>
   );
 }

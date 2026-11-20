@@ -138,7 +138,8 @@ const PageItem = memo(function PageItem({ page, index, current, count, actions }
                 danger
                 onClick={() => {
                   close();
-                  if (page.elements.length === 0 || confirm(`Supprimer la page ${index + 1} ?`)) actions.remove(index);
+                  // annulable (Ctrl+Z, tape à deux doigts, bouton Annuler)
+                  actions.remove(index);
                 }}
               >
                 Supprimer

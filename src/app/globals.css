@@ -316,6 +316,19 @@
     display: none;
   }
 }
+/* Cahier plein écran : à l'abri des barres système (encoche, barre d'accueil) */
+.nb-root {
+  top: env(safe-area-inset-top, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+  right: env(safe-area-inset-right, 0px);
+}
+@media (max-width: 639px) {
+  .nb-modal {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* KaTeX (feuille hors couche) : formules du cahier alignées à gauche */
 .nb-text .katex-display,
 .nb-math .katex-display {

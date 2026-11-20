@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   Calculator,
   CircleHelp,
+  Cloud,
+  CloudOff,
   Download,
   Eraser,
   FileDown,
@@ -29,6 +31,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { makeExport } from "@/lib/notebook/model";
+import { inClaudeViewer, type SyncStatus } from "@/lib/notebook/cloud";
 import { HIGHLIGHT_COLORS, HIGHLIGHT_SIZES, PAPER_COLORS, PAPERS, PEN_COLORS, PEN_SIZES, ERASER_SIZES } from "@/lib/notebook/paper";
 import type { Notebook, Orientation, Page, PaperColor, PaperKind } from "@/lib/notebook/types";
 import { cn } from "@/lib/utils";
@@ -87,6 +90,7 @@ export function TopBar(props: {
   onRedo: () => void;
   saving: "saved" | "pending" | "error";
   persistent: boolean;
+  sync: SyncStatus | null;
   page: Page;
   pageIndex: number;
   pageCount: number;
@@ -130,6 +134,22 @@ export function TopBar(props: {
         className={cn("hidden size-2 shrink-0 rounded-full sm:inline-block", props.saving === "saved" ? "bg-success" : props.saving === "pending" ? "bg-warning" : "bg-danger")}
         title={props.saving === "saved" ? (props.persistent ? "Enregistré sur cet appareil" : "Stockage indisponible : exportez votre cahier") : props.saving === "pending" ? "Enregistrement…" : "Erreur d'enregistrement"}
       />
+      {props.sync && props.sync !== "local" && props.sync !== "connecting" && (
+        <span
+          className={cn("hidden shrink-0 sm:inline-flex", props.sync === "ok" || props.sync === "syncing" ? "text-muted-foreground" : "text-warning")}
+          title={
+            props.sync === "ok"
+              ? "Synchronisé avec votre compte claude.ai"
+              : props.sync === "syncing"
+                ? "Synchronisation…"
+                : props.sync === "quota"
+                  ? "Espace de synchronisation plein"
+                  : "Synchronisation indisponible : enregistré sur cet appareil"
+          }
+        >
+          {props.sync === "ok" || props.sync === "syncing" ? <Cloud className={cn("size-4", props.sync === "syncing" && "animate-pulse")} /> : <CloudOff className="size-4" />}
+        </span>
+      )}
       <div className="ml-auto flex items-center gap-0.5">
         <ToolButton label="Annuler (Ctrl+Z, tape à deux doigts)" disabled={!props.canUndo} onClick={props.onUndo}>
           <Undo2 />
@@ -213,15 +233,17 @@ export function TopBar(props: {
         >
           {(close) => (
             <>
-              <MenuItem
-                icon={<Printer />}
-                onClick={() => {
-                  close();
-                  props.onPrint();
-                }}
-              >
-                Imprimer / enregistrer en PDF
-              </MenuItem>
+              {!inClaudeViewer() && (
+                <MenuItem
+                  icon={<Printer />}
+                  onClick={() => {
+                    close();
+                    props.onPrint();
+                  }}
+                >
+                  Imprimer / enregistrer en PDF
+                </MenuItem>
+              )}
               <MenuItem
                 icon={<FileText />}
                 onClick={() => {
@@ -232,6 +254,9 @@ export function TopBar(props: {
               >
                 Version imprimable (page web)
               </MenuItem>
+              {inClaudeViewer() && (
+                <p className="px-2.5 pb-1 text-[11.5px] leading-snug text-muted-foreground">Ouvrez le fichier dans votre navigateur puis imprimez-le ou enregistrez-le en PDF.</p>
+              )}
               <MenuItem
                 icon={<FileDown />}
                 onClick={() => {

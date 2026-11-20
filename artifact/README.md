@@ -12,8 +12,16 @@ npm run build:cahier        # → artifact/dist/cahier.html
 
 Même code que la page `/cahier` du site (`artifact/cahier-main.tsx`), sans le
 reste de la plateforme : c'est la version « à portée de main » publiée à part.
-Les cahiers restent dans le navigateur de chaque personne (IndexedDB) ;
-la sauvegarde `.json` et l'export passent par la capacité `downloads`.
+Capacités déclarées à la publication : `db`, `user`, `downloads`.
+
+- Copie de travail dans le navigateur (IndexedDB), synchronisée avec
+  l'espace privé de chaque personne `data/users/<id>/` (capacité `db`) :
+  les cahiers suivent d'un appareil à l'autre, personne d'autre ne les lit
+  (`src/lib/notebook/cloud.ts`). Sans accès en écriture (lecteur en
+  « lecture seule »), tout reste sur l'appareil.
+- Sauvegarde `.json` et version imprimable `.html` par la capacité
+  `downloads` (le lecteur bloque l'impression directe : le menu
+  « Imprimer » n'y apparaît pas).
 
 ## Mettre à jour la version en ligne
 

@@ -29,6 +29,7 @@ import { cloneElement, clonePage, newPage, uid } from "@/lib/notebook/model";
 import { PAPER_COLORS, pageSize } from "@/lib/notebook/paper";
 import { recognizeShape, shapeFromRecognized, type Recognized } from "@/lib/notebook/recognize";
 import { readPref, writePref, type NotebookStore } from "@/lib/notebook/storage";
+import type { SyncStatus } from "@/lib/notebook/cloud";
 import { SYMBOL_BY_KIND } from "@/lib/notebook/symbols";
 import type { BeamEl, CutEl, MathEl, NoteElement, Notebook, Page, Rect, ShapeEl, StrokeEl, SymbolEl, TextEl } from "@/lib/notebook/types";
 import { analyzeBeam } from "@/lib/mechanics/beam";
@@ -111,7 +112,7 @@ interface Editing {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-export function Editor({ initial, store, onClose }: { initial: Notebook; store: NotebookStore; onClose: () => void }) {
+export function Editor({ initial, store, onClose, sync }: { initial: Notebook; store: NotebookStore; onClose: () => void; sync?: SyncStatus | null }) {
   const nbh = useNotebook(initial, store);
   const { nb, commit, transient, endGesture, pagesRef } = nbh;
   const pages = nb.pages;
@@ -1484,6 +1485,7 @@ export function Editor({ initial, store, onClose }: { initial: Notebook; store: 
         onRedo={nbh.redo}
         saving={nbh.saving}
         persistent={store.persistent}
+        sync={sync ?? null}
         page={cur}
         pageIndex={currentPageIndex}
         pageCount={pages.length}
