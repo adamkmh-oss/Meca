@@ -9,6 +9,8 @@ export type DrawShape = Extract<ShapeKind, "line" | "arrow" | "darrow" | "rect" 
 export interface ToolSettings {
   penColor: string;
   penSize: number;
+  /** Pointe du stylo : bille (régulière) ou plume (pleins et déliés). */
+  penType: "ball" | "fountain";
   penColors: string[];
   hlColor: string;
   hlSize: number;
@@ -33,6 +35,7 @@ export interface ToolSettings {
 export const DEFAULT_SETTINGS: ToolSettings = {
   penColor: PEN_COLORS[0],
   penSize: 2.6,
+  penType: "ball",
   penColors: PEN_COLORS.slice(0, 5),
   hlColor: HIGHLIGHT_COLORS[0],
   hlSize: 20,

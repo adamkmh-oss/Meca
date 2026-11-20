@@ -11,10 +11,17 @@ import { Tex } from "@/components/math";
 import { cutEquations, namedReactions, polyTexN, texn, txtn } from "@/lib/notebook/beam-notes";
 import type { BeamEl, CutEl } from "@/lib/notebook/types";
 import { LabelText } from "./symbol-art";
+import { LitBeamBlock, LitCutBlock } from "./literal-views";
 
 const PLOT = "rounded-none border-0 border-t border-dashed bg-transparent";
 
 export const BeamBlock = memo(function BeamBlock({ el }: { el: BeamEl }) {
+  if (el.lit) return <LitBeamBlock lit={el.lit} model={el.model} show={el.show} title={el.title} />;
+  return <NumBeamBlock el={el} />;
+});
+
+/** Ancienne poutre saisie en valeurs (avant le calcul littéral). */
+const NumBeamBlock = memo(function NumBeamBlock({ el }: { el: BeamEl }) {
   const an = useMemo(() => analyzeBeam(el.model), [el.model]);
   const reacts = useMemo(() => namedReactions(an), [an]);
   const L = el.model.length;
@@ -94,6 +101,11 @@ function Arc({ cx, cy, r, ccw, color }: { cx: number; cy: number; r: number; ccw
 }
 
 export const CutBlock = memo(function CutBlock({ el }: { el: CutEl }) {
+  if (el.lit) return <LitCutBlock lit={el.lit} model={el.model} seg={el.seg} />;
+  return <NumCutBlock el={el} />;
+});
+
+const NumCutBlock = memo(function NumCutBlock({ el }: { el: CutEl }) {
   const an = useMemo(() => analyzeBeam(el.model), [el.model]);
   const cuts = useMemo(() => cutEquations(el.model, an), [el.model, an]);
   const reacts = useMemo(() => namedReactions(an), [an]);

@@ -27,16 +27,22 @@ export function normalizePressure(p: number): number {
   return Math.min(1, 0.18 + p * 0.95);
 }
 
-export function penPath(el: Pick<StrokeEl, "pts" | "size" | "pressure">, last = true): string {
+/**
+ * Stylo : « bille » (par défaut) = trait d'épaisseur quasi constante, net et
+ * régulier ; « plume » = pleins et déliés selon la pression.
+ */
+export function penPath(el: Pick<StrokeEl, "pts" | "size" | "pressure" | "pen">, last = true): string {
   const input: number[][] = [];
   for (let i = 0; i + 1 < el.pts.length; i += 3) input.push([el.pts[i], el.pts[i + 1], el.pts[i + 2] ?? 0.5]);
   if (input.length === 0) return "";
+  const fountain = el.pen === "fountain";
   const outline = getStroke(input, {
     size: el.size,
-    thinning: el.pressure ? 0.6 : 0.32,
-    smoothing: 0.55,
-    streamline: 0.38,
-    simulatePressure: !el.pressure,
+    // bille : très légère variation avec la pression réelle, aucune simulée
+    thinning: fountain ? (el.pressure ? 0.6 : 0.32) : el.pressure ? 0.12 : 0,
+    smoothing: fountain ? 0.55 : 0.62,
+    streamline: fountain ? 0.38 : 0.5,
+    simulatePressure: fountain ? !el.pressure : false,
     last,
     start: { cap: true, taper: 0 },
     end: { cap: true, taper: 0 },

@@ -32,16 +32,16 @@ import { readPref, writePref, type NotebookStore } from "@/lib/notebook/storage"
 import type { SyncStatus } from "@/lib/notebook/cloud";
 import { SYMBOL_BY_KIND } from "@/lib/notebook/symbols";
 import type { BeamEl, CutEl, MathEl, NoteElement, Notebook, Page, Rect, ShapeEl, StrokeEl, SymbolEl, TextEl, TrussEl } from "@/lib/notebook/types";
-import { analyzeTruss, trussMarkdown } from "@/lib/notebook/truss";
+import { litTrussMarkdown } from "@/lib/notebook/literal-truss";
 import { TrussDialog, type TrussInsertOptions } from "./truss-dialog";
-import { analyzeBeam } from "@/lib/mechanics/beam";
-import { cutsMarkdown, pfsMarkdown, segmentBounds } from "@/lib/notebook/beam-notes";
+import { litBounds, litCutsMarkdown, litPfsMarkdown, parseBeam } from "@/lib/notebook/literal-beam";
 import { onMeasure, PageView, type TextEditing } from "./page-view";
 import { mapPage, useNotebook } from "./use-notebook";
 import { DEFAULT_SETTINGS, type Tool, type ToolSettings } from "./tools";
 import { EditorToolbar, TopBar } from "./toolbar";
 import { MechanicsDrawer, PagesSidebar, PropsPanel, SelectionBar } from "./panels";
-import { BeamDialog, MathDialog, type BeamInsertOptions } from "./dialogs";
+import { MathDialog } from "./dialogs";
+import { BeamDialog, type BeamInsertOptions } from "./beam-dialog";
 import { PrintArea, printNotebook, printableHtml } from "./print";
 import { imageToDataUrl, pdfToImages, pickFiles, safeName, saveFile } from "./files";
 import { Eraser } from "lucide-react";
@@ -85,6 +85,7 @@ type Gesture =
       tool: "pen" | "highlighter";
       pts: number[];
       pressure: boolean;
+      pen: "ball" | "fountain";
       color: string;
       size: number;
       holdAt: [number, number];
@@ -541,7 +542,6 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
 
   const insertTruss = useCallback(
     (opts: TrussInsertOptions, existing?: TrussEl) => {
-      const an = analyzeTruss(opts.model);
       if (existing) {
         const group = existing.group;
         commit((ps) =>
@@ -550,8 +550,8 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
               ? {
                   ...p,
                   elements: p.elements.map((e) => {
-                    if (e.id === existing.id && e.type === "truss") return { ...e, model: opts.model, show: opts.show, title: opts.title || undefined };
-                    if (group && e.group === group && e.type === "text" && e.role === "truss") return { ...e, text: trussMarkdown(opts.model, an) };
+                    if (e.id === existing.id && e.type === "truss") return { ...e, model: opts.model, lit: opts.lit, show: opts.show, title: opts.title || undefined };
+                    if (group && e.group === group && e.type === "text" && e.role === "truss") return { ...e, text: litTrussMarkdown(opts.lit) };
                     return e;
                   }),
                 }
@@ -565,9 +565,9 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       const group = uid("g");
       const w = Math.min(640, b.w - 60);
       const x = Math.round((b.w - w) / 2);
-      const truss: TrussEl = { id: uid("e"), group, type: "truss", x, y: 0, w, title: opts.title || undefined, model: opts.model, show: opts.show };
+      const truss: TrussEl = { id: uid("e"), group, type: "truss", x, y: 0, w, title: opts.title || undefined, model: opts.model, lit: opts.lit, show: opts.show };
       const els: NoteElement[] = [truss];
-      if (opts.notes) els.push({ id: uid("e"), group, role: "truss", type: "text", x, y: 0, w, text: trussMarkdown(opts.model, an), size: 14, color: "#111827" } satisfies TextEl);
+      if (opts.notes) els.push({ id: uid("e"), group, role: "truss", type: "text", x, y: 0, w, text: litTrussMarkdown(opts.lit), size: 14, color: "#111827" } satisfies TextEl);
       placeGenerated(els, x, truss.id);
     },
     [commit, notify, boxOf, visibleCenter, placeGenerated],
@@ -575,11 +575,11 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
 
   const insertBeam = useCallback(
     (opts: BeamInsertOptions, existing?: BeamEl) => {
-      const an = analyzeBeam(opts.model);
+      const parsed = parseBeam(opts.lit);
+      const nseg = parsed.ok ? litBounds(parsed.p).length - 1 : 0;
       if (existing) {
         // mise à jour de la poutre et régénération des blocs du même groupe
         const group = existing.group;
-        const nseg = segmentBounds(opts.model).length - 1;
         commit((ps) =>
           ps.map((p) =>
             p.elements.some((e) => e.id === existing.id || (group && e.group === group))
@@ -588,11 +588,11 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
                   elements: p.elements
                     .filter((e) => !(group && e.group === group && e.type === "cut" && e.seg >= nseg))
                     .map((e) => {
-                      if (e.id === existing.id && e.type === "beam") return { ...e, model: opts.model, show: opts.show, title: opts.title || undefined };
+                      if (e.id === existing.id && e.type === "beam") return { ...e, model: opts.model, lit: opts.lit, show: opts.show, title: opts.title || undefined };
                       if (!group || e.group !== group) return e;
-                      if (e.type === "text" && e.role === "pfs") return { ...e, text: pfsMarkdown(opts.model, an) };
-                      if (e.type === "text" && e.role === "cuts") return { ...e, text: cutsMarkdown(opts.model, an) };
-                      if (e.type === "cut") return { ...e, model: opts.model };
+                      if (e.type === "text" && e.role === "pfs") return { ...e, text: litPfsMarkdown(opts.lit) };
+                      if (e.type === "text" && e.role === "cuts") return { ...e, text: litCutsMarkdown(opts.lit) };
+                      if (e.type === "cut") return { ...e, model: opts.model, lit: opts.lit };
                       return e;
                     }),
                 }
@@ -607,14 +607,13 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
       const w = Math.min(640, b.w - 60);
       const x = Math.round((b.w - w) / 2);
       const els: NoteElement[] = [];
-      const beam: BeamEl = { id: uid("e"), group, type: "beam", x, y: 0, w, title: opts.title || undefined, model: opts.model, show: opts.show };
+      const beam: BeamEl = { id: uid("e"), group, type: "beam", x, y: 0, w, title: opts.title || undefined, model: opts.model, lit: opts.lit, show: opts.show };
       els.push(beam);
       const color = "#111827";
-      if (opts.pfs) els.push({ id: uid("e"), group, role: "pfs", type: "text", x, y: 0, w, text: pfsMarkdown(opts.model, an), size: 14, color } satisfies TextEl);
+      if (opts.pfs) els.push({ id: uid("e"), group, role: "pfs", type: "text", x, y: 0, w, text: litPfsMarkdown(opts.lit), size: 14, color } satisfies TextEl);
       if (opts.cutFigures) {
-        const n = segmentBounds(opts.model).length - 1;
-        for (let k = 0; k < n; k++) els.push({ id: uid("e"), group, type: "cut", x, y: 0, w, model: opts.model, seg: k } satisfies CutEl);
-      } else if (opts.cuts) els.push({ id: uid("e"), group, role: "cuts", type: "text", x, y: 0, w, text: cutsMarkdown(opts.model, an), size: 14, color } satisfies TextEl);
+        for (let k = 0; k < nseg; k++) els.push({ id: uid("e"), group, type: "cut", x, y: 0, w, model: opts.model, lit: opts.lit, seg: k } satisfies CutEl);
+      } else if (opts.cuts) els.push({ id: uid("e"), group, role: "cuts", type: "text", x, y: 0, w, text: litCutsMarkdown(opts.lit), size: 14, color } satisfies TextEl);
       placeGenerated(els, x, beam.id);
     },
     [commit, notify, visibleCenter, boxOf, placeGenerated],
@@ -841,7 +840,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
         return;
       }
       if (g.tool === "pen") {
-        path.setAttribute("d", penPath({ pts: g.pts, size: g.size, pressure: g.pressure }, false));
+        path.setAttribute("d", penPath({ pts: g.pts, size: g.size, pressure: g.pressure, pen: g.pen }, false));
         path.setAttribute("fill", g.color);
         path.setAttribute("stroke", "none");
         path.setAttribute("opacity", "1");
@@ -1003,6 +1002,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
           pressure,
           color: t === "pen" ? s.penColor : s.hlColor,
           size: t === "pen" ? s.penSize : s.hlSize,
+          pen: s.penType,
           holdAt: [x, y],
           holdTimer: null,
           snapped: null,
@@ -1289,7 +1289,7 @@ export function Editor({ initial, store, onClose, sync }: { initial: Notebook; s
             if (g.tool === "highlighter") el = { id: uid("e"), type: "stroke", tool: "highlighter", color: g.color, size: g.size, pressure: false, pts: [g.snapped.pts[0], g.snapped.pts[1], 0.5, g.snapped.pts[2], g.snapped.pts[3], 0.5] };
             else el = shapeFromRecognized(uid("e"), g.snapped, g.color, Math.max(1.2, g.size * 0.75));
           } else if (g.pts.length >= 3) {
-            el = { id: uid("e"), type: "stroke", tool: g.tool, color: g.color, size: g.size, pressure: g.pressure, pts: g.pts } satisfies StrokeEl;
+            el = { id: uid("e"), type: "stroke", tool: g.tool, color: g.color, size: g.size, pressure: g.pressure, pts: g.pts, pen: g.tool === "pen" && g.pen === "fountain" ? "fountain" : undefined } satisfies StrokeEl;
           }
           if (el) {
             const add = el;

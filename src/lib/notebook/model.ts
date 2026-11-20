@@ -85,8 +85,32 @@ const beamModel = z.object({
     .max(60),
 });
 
+const expr = z.string().min(1).max(200);
+const litVars = z.array(z.object({ name: z.string().min(1).max(20), value: num })).max(60);
+const litBeam = z.object({
+  vars: litVars,
+  length: expr,
+  supports: z.array(z.object({ id: z.string().max(40), x: expr, type: z.enum(["roller", "rollerX", "pin", "fixed"]) })).max(20),
+  hinges: z.array(z.object({ id: z.string().max(40), x: expr })).max(20),
+  loads: z
+    .array(
+      z.discriminatedUnion("kind", [
+        z.object({ id: z.string().max(40), kind: z.literal("point"), x: expr, F: expr, angle: num }),
+        z.object({ id: z.string().max(40), kind: z.literal("dist"), x1: expr, x2: expr, q1: expr, q2: expr }),
+        z.object({ id: z.string().max(40), kind: z.literal("moment"), x: expr, M: expr }),
+      ]),
+    )
+    .max(60),
+});
+const litTruss = z.object({
+  vars: litVars,
+  nodes: z.array(z.object({ id: z.string().min(1).max(8), x: expr, y: expr, support: z.enum(["free", "pin", "roller", "rollerX"]) })).max(200),
+  bars: z.array(z.object({ id: z.string().min(1).max(20), i: z.string().max(8), j: z.string().max(8) })).max(600),
+  loads: z.array(z.object({ id: z.string().min(1).max(20), node: z.string().max(8), F: expr, angle: num })).max(200),
+});
+
 const element = z.discriminatedUnion("type", [
-  z.object({ ...base, type: z.literal("stroke"), tool: z.enum(["pen", "highlighter"]), color, size: num, pts: z.array(num).max(300_000), pressure: z.boolean() }),
+  z.object({ ...base, type: z.literal("stroke"), tool: z.enum(["pen", "highlighter"]), color, size: num, pts: z.array(num).max(300_000), pressure: z.boolean(), pen: z.enum(["ball", "fountain"]).optional() }),
   z.object({
     ...base,
     type: z.literal("shape"),
@@ -125,8 +149,9 @@ const element = z.discriminatedUnion("type", [
     title: z.string().max(200).optional(),
     model: beamModel,
     show: z.object({ schema: z.boolean(), reactions: z.boolean(), N: z.boolean(), T: z.boolean(), M: z.boolean(), deformee: z.boolean() }),
+    lit: litBeam.optional(),
   }),
-  z.object({ ...base, type: z.literal("cut"), x: num, y: num, w: num, model: beamModel, seg: z.number().int().min(0).max(200) }),
+  z.object({ ...base, type: z.literal("cut"), x: num, y: num, w: num, model: beamModel, seg: z.number().int().min(0).max(200), lit: litBeam.optional() }),
   z.object({
     ...base,
     type: z.literal("truss"),
@@ -142,6 +167,7 @@ const element = z.discriminatedUnion("type", [
       A: num.positive(),
     }),
     show: z.object({ efforts: z.boolean(), reactions: z.boolean(), labels: z.boolean() }),
+    lit: litTruss.optional(),
   }),
 ]);
 

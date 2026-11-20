@@ -468,6 +468,16 @@ export function EditorToolbar({
       <div className="flex min-w-0 items-center gap-0.5">
         {tool === "pen" && (
           <>
+            <Segmented
+              size="sm"
+              value={s.penType}
+              onChange={(v) => onSettings({ penType: v })}
+              options={[
+                { value: "ball", label: "Bille", title: "Trait régulier, net" },
+                { value: "fountain", label: "Plume", title: "Pleins et déliés selon la pression" },
+              ]}
+            />
+            <Sep />
             {colorRow("penColor")}
             <Sep />
             {PEN_SIZES.map((z) => (

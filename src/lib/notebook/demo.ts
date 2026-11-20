@@ -1,7 +1,6 @@
 /** Cahier d'exemple créé au premier lancement : il montre ce que fait chaque outil. */
 import type { BeamModel } from "@/lib/mechanics/beam";
-import { analyzeBeam } from "@/lib/mechanics/beam";
-import { cutsMarkdown, pfsMarkdown } from "./beam-notes";
+import { literalFromNumeric, litCutsMarkdown, litPfsMarkdown } from "./literal-beam";
 import { newPage, uid } from "./model";
 import type { Notebook, NoteElement, SymbolEl } from "./types";
 import { CUT, INK, LOAD, REACTION, symbolDef } from "./symbols";
@@ -26,7 +25,7 @@ export function demoNotebook(): Notebook {
       { id: "F", kind: "point", x: 2, F: 20, angle: -90 },
     ],
   };
-  const an = analyzeBeam(model);
+  const lit = literalFromNumeric(model);
   const group = uid("g");
   const now = Date.now();
 
@@ -62,24 +61,24 @@ export function demoNotebook(): Notebook {
   const p2 = newPage("carreaux");
   p2.title = "Poutre calculée";
   p2.elements = [
-    { id: uid("e"), type: "text", x: 77, y: 34, w: 640, size: 15, color: "#56627f", text: "Double-touchez la poutre (outil lasso) pour changer appuis et charges : schéma, réactions, PFS, coupures et diagrammes se recalculent." },
-    { id: uid("e"), group, type: "beam", x: 77, y: 84, w: 640, title: "Poutre de 6 m — q = 10 kN/m et F = 20 kN", model, show: { schema: true, reactions: true, N: false, T: true, M: true, deformee: false } },
+    { id: uid("e"), type: "text", x: 77, y: 34, w: 640, size: 15, color: "#56627f", text: "Tout est calculé en lettres, comme en cours. Double-touchez la poutre (outil lasso) pour changer appuis et charges : schéma, réactions, PFS, coupures et diagrammes se recalculent." },
+    { id: uid("e"), group, type: "beam", x: 77, y: 112, w: 640, title: "Poutre sur deux appuis — charge q uniforme et force F en L/3", model, lit, show: { schema: true, reactions: true, N: false, T: true, M: true, deformee: false } },
   ];
 
   const p3 = newPage("carreaux");
   p3.title = "PFS et coupures";
   p3.elements = [
-    { id: uid("e"), group, role: "pfs", type: "text", x: 77, y: 40, w: 640, size: 14, color: INK, text: pfsMarkdown(model, an) },
+    { id: uid("e"), group, role: "pfs", type: "text", x: 77, y: 40, w: 640, size: 14, color: INK, text: litPfsMarkdown(lit) },
   ];
   const p4 = newPage("carreaux");
   p4.title = "Coupures";
   p4.elements = [
-    { id: uid("e"), group, type: "cut", x: 77, y: 40, w: 640, model, seg: 0 },
-    { id: uid("e"), group, type: "cut", x: 77, y: 560, w: 640, model, seg: 1 },
+    { id: uid("e"), group, type: "cut", x: 77, y: 40, w: 640, model, lit, seg: 0 },
+    { id: uid("e"), group, type: "cut", x: 77, y: 560, w: 640, model, lit, seg: 1 },
   ];
   const p5 = newPage("carreaux");
   p5.title = "Équations des tronçons";
-  p5.elements = [{ id: uid("e"), group, role: "cuts", type: "text", x: 77, y: 40, w: 640, size: 14, color: INK, text: cutsMarkdown(model, an) }];
+  p5.elements = [{ id: uid("e"), group, role: "cuts", type: "text", x: 77, y: 40, w: 640, size: 14, color: INK, text: litCutsMarkdown(lit) }];
   const p6 = newPage("etude-poutre");
   p6.title = "À vous";
 

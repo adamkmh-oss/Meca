@@ -19,6 +19,34 @@ export function courseValue(f: { N: number; V: number; M: number }, q: "N" | "T"
   return q === "N" ? f.N : q === "T" ? -f.V : f.M;
 }
 
+/** Texte avec indices et exposants simples : « V_A », « qL^2/8 ». */
+function Rich({ text }: { text: string }) {
+  const parts: { t: string; sub?: boolean; sup?: boolean }[] = [];
+  const re = /([_^])(\{[^}]*\}|[^\s/+\-()]+)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push({ t: text.slice(last, m.index) });
+    const body = m[2].startsWith("{") ? m[2].slice(1, -1) : m[2];
+    parts.push(m[1] === "_" ? { t: body, sub: true } : { t: body, sup: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ t: text.slice(last) });
+  return (
+    <>
+      {parts.map((p, k) =>
+        p.sub || p.sup ? (
+          <tspan key={k} fontSize="0.72em" baselineShift={p.sub ? "-25%" : "40%"}>
+            {p.t}
+          </tspan>
+        ) : (
+          <tspan key={k}>{p.t}</tspan>
+        ),
+      )}
+    </>
+  );
+}
+
 export function StructureView({
   structure,
   result,
@@ -28,6 +56,9 @@ export function StructureView({
   nodeLabels = true,
   className,
   height,
+  memberText,
+  loadText,
+  reactionText,
 }: {
   structure: Structure;
   result?: AnalysisSuccess | null;
@@ -37,6 +68,10 @@ export function StructureView({
   nodeLabels?: boolean;
   className?: string;
   height?: number;
+  /** Étiquettes remplaçant les valeurs numériques (calcul littéral). */
+  memberText?: (memberId: string) => string;
+  loadText?: (index: number) => string;
+  reactionText?: (nodeId: string, comp: "H" | "V" | "M") => string;
 }) {
   const geom = useMemo(() => {
     const xs = structure.nodes.map((n) => n.x);
@@ -253,8 +288,8 @@ export function StructureView({
             return (
               <g key={k}>
                 <Arrow x1={tail.X} y1={tail.Y} x2={tip.X} y2={tip.Y} />
-                <text x={tail.X + (ux > 0.5 ? -4 : 4)} y={tail.Y - 6} textAnchor={ux > 0.5 ? "end" : "middle"} fontSize={12} fontWeight={600} fill="var(--load)">
-                  {fmt(mag, 1)} kN
+                <text x={tail.X + (ux > 0.5 ? -4 : 4)} y={tail.Y - 6} textAnchor={ux > 0.5 ? "end" : "middle"} fontSize={loadText ? 14 : 12} fontWeight={600} fontStyle={loadText ? "italic" : undefined} fill="var(--load)">
+                  {loadText ? <Rich text={loadText(k)} /> : `${fmt(mag, 1)} kN`}
                 </text>
               </g>
             );
@@ -319,8 +354,8 @@ export function StructureView({
             const up = r.ry > 0;
             out.push(<Arrow key="y" x1={p.X + 24} y1={p.Y + (up ? 64 : 14)} x2={p.X + 24} y2={p.Y + (up ? 14 : 64)} color="var(--reaction)" width={2} head={8} />);
             out.push(
-              <text key="ty" x={p.X + 30} y={p.Y + 46} fontSize={12} fontWeight={600} fill="var(--reaction)">
-                {fmt(Math.abs(r.ry), 2)} kN
+              <text key="ty" x={p.X + 30} y={p.Y + 46} fontSize={reactionText ? 14 : 12} fontWeight={600} fontStyle={reactionText ? "italic" : undefined} fill="var(--reaction)">
+                {reactionText ? <Rich text={reactionText(id, "V")} /> : `${fmt(Math.abs(r.ry), 2)} kN`}
               </text>,
             );
           }
@@ -328,8 +363,8 @@ export function StructureView({
             const right = r.rx > 0;
             out.push(<Arrow key="x" x1={p.X + (right ? -64 : 64)} y1={p.Y + 30} x2={p.X + (right ? -12 : 12)} y2={p.Y + 30} color="var(--reaction)" width={2} head={8} />);
             out.push(
-              <text key="tx" x={p.X + (right ? -64 : 14)} y={p.Y + 46} fontSize={12} fontWeight={600} fill="var(--reaction)">
-                {fmt(Math.abs(r.rx), 2)} kN
+              <text key="tx" x={p.X + (right ? -64 : 14)} y={p.Y + 46} fontSize={reactionText ? 14 : 12} fontWeight={600} fontStyle={reactionText ? "italic" : undefined} fill="var(--reaction)">
+                {reactionText ? <Rich text={reactionText(id, "H")} /> : `${fmt(Math.abs(r.rx), 2)} kN`}
               </text>,
             );
           }
@@ -366,7 +401,7 @@ export function StructureView({
             stroke="var(--card)"
             strokeWidth={4}
           >
-            {fmt(f.N, 1)}
+            {memberText ? <Rich text={memberText(f.id)} /> : fmt(f.N, 1)}
           </text>
         );
       })}

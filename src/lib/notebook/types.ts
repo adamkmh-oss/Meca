@@ -8,6 +8,8 @@
  */
 import type { BeamModel } from "@/lib/mechanics/beam";
 import type { TrussModel } from "./truss";
+import type { LitBeam } from "./literal-beam";
+import type { LitTruss } from "./literal-truss";
 
 export type PaperKind =
   | "blanc"
@@ -74,6 +76,8 @@ export interface StrokeEl extends Base {
   pts: number[];
   /** Pression réelle (stylet) ; sinon elle est simulée d'après la vitesse. */
   pressure: boolean;
+  /** Type de pointe : bille (épaisseur régulière, par défaut) ou plume (pleins et déliés). */
+  pen?: "ball" | "fountain";
 }
 
 export type ShapeKind = "line" | "arrow" | "darrow" | "rect" | "ellipse" | "triangle" | "polygon" | "polyline" | "dim";
@@ -166,6 +170,8 @@ export interface BeamEl extends Base {
   title?: string;
   model: BeamModel;
   show: BeamShow;
+  /** Données littérales (lettres) ; `model` en est la traduction aux valeurs de dessin. */
+  lit?: LitBeam;
 }
 
 /** Coupure préfaite d'une poutre calculée : partie gauche isolée sur un tronçon. */
@@ -177,6 +183,7 @@ export interface CutEl extends Base {
   model: BeamModel;
   /** Indice du tronçon. */
   seg: number;
+  lit?: LitBeam;
 }
 
 export interface TrussShow {
@@ -195,6 +202,7 @@ export interface TrussEl extends Base {
   title?: string;
   model: TrussModel;
   show: TrussShow;
+  lit?: LitTruss;
 }
 
 export type NoteElement = StrokeEl | ShapeEl | TextEl | MathEl | ImageEl | SymbolEl | BeamEl | CutEl | TrussEl;
